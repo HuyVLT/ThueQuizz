@@ -197,19 +197,26 @@ export default function QuizPage() {
             {shuffled.map((q, i) => {
               const ans = answers[i];
               const noAnswer = q.correctIndex < 0;
-              const isCorrect = !noAnswer && ans?.correct;
+              const skipped = !ans; // câu chưa trả lời (kết thúc sớm)
+              const isCorrect = !noAnswer && !skipped && ans.correct;
               const itemClass = noAnswer
                 ? `${styles.reviewItem} ${styles.reviewNoAnswer}`
+                : skipped
+                ? `${styles.reviewItem} ${styles.reviewSkipped}`
                 : `${styles.reviewItem} ${isCorrect ? styles.reviewCorrect : styles.reviewWrong}`;
               return (
                 <div key={q.id} className={itemClass}>
                   <div className={styles.reviewQ}>
-                    <span className={styles.reviewIcon}>{noAnswer ? "?" : isCorrect ? "✓" : "✗"}</span>
+                    <span className={styles.reviewIcon}>{noAnswer ? "?" : skipped ? "—" : isCorrect ? "✓" : "✗"}</span>
                     <span>{i + 1}. {q.question}</span>
                   </div>
                   {noAnswer ? (
                     <div className={styles.reviewAnswer}>
                       Câu này không có đáp án
+                    </div>
+                  ) : skipped ? (
+                    <div className={styles.reviewAnswer}>
+                      Chưa trả lời — Đáp án: <strong>{q.options[q.correctIndex]}</strong>
                     </div>
                   ) : !isCorrect && (
                     <div className={styles.reviewAnswer}>
@@ -250,6 +257,16 @@ export default function QuizPage() {
         <div className={styles.quizHeader}>
           <span className={styles.qNum}>Câu {current + 1} / {shuffled.length}</span>
           {q.category && <span className={styles.qCategory}>{q.category}</span>}
+          <button
+            className={styles.endBtn}
+            onClick={() => {
+              if (confirm(`Kết thúc bài làm? Bạn đã làm ${answers.length}/${shuffled.length} câu.`)) {
+                setPhase("review");
+              }
+            }}
+          >
+            Kết thúc
+          </button>
         </div>
 
         <h2 className={styles.question}>{q.question}</h2>

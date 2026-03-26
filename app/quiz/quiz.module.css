@@ -225,6 +225,22 @@
   padding: 3px 10px;
   border-radius: 20px;
 }
+.endBtn {
+  padding: 5px 14px;
+  border-radius: 8px;
+  border: 1.5px solid #e0c4c4;
+  background: #fff5f5;
+  color: #c0392b;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-left: auto;
+}
+.endBtn:hover {
+  background: #fdeaea;
+  border-color: #c0392b;
+}
 .question {
   font-size: 1.15rem;
   font-weight: 700;
@@ -375,6 +391,7 @@
 .reviewCorrect { background: #f0faf3; }
 .reviewWrong { background: #fde8e8; }
 .reviewNoAnswer { background: #f5f5f5; border: 1.5px dashed #ccc; }
+.reviewSkipped { background: #f0f4ff; border: 1.5px dashed #aac0ee; }
 .reviewNoAnswerNote { color: #999; font-style: italic; }
 .noAnswerBanner {
   margin-top: 8px;
