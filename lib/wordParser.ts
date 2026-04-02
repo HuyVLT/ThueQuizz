@@ -36,19 +36,19 @@ function normalizeVi(str: string): string {
  * Returns uppercase letter, or null if not an option line.
  */
 function getOptionLetter(line: string): string | null {
-  // Uppercase: distinctive enough, space optional
-  let match = line.match(/^\s*\(?([A-E])[.)]\s*/);
+  // Uppercase: distinctive enough, space optional (including optional *)
+  let match = line.match(/^\s*\(?([A-H])[.)]\s*\*?\s*/);
   if (match) return match[1];
   // Vietnamese "Đ" (U+0110) as option letter (e.g. "Đ. text" or "đ. text")
-  match = line.match(/^\s*\(?([đĐ])[.)]\s*/);
+  match = line.match(/^\s*\(?([đĐ])[.)]\s*\*?\s*/);
   if (match) return "D5"; // Special marker: 5th option (đ)
   // Lowercase: require space after period/paren to avoid false positives
-  match = line.match(/^\s*\(?([a-e])[.)]\s+/);
+  match = line.match(/^\s*\(?([a-h])[.)]\s*\*?\s+/);
   return match ? match[1].toUpperCase() : null;
 }
 
 function stripOptionPrefix(line: string): string {
-  return line.replace(/^\s*\(?[A-Ea-eđĐ][.)]\s*/, "").trim();
+  return line.replace(/^\s*\(?[A-Ha-hđĐ][.)]\s*\*?\s*/, "").trim();
 }
 
 /**
@@ -60,9 +60,10 @@ function getAnswerLetter(line: string): string | null {
   // Strip leading emoji and non-letter characters (e.g. "👉 Đáp án: B")
   const cleaned = line.replace(/^[^\p{L}\p{N}]+/u, "");
   const norm = normalizeVi(cleaned);
-  // Match "Đáp án: B", "Đáp án đúng: A", "(Đáp án a)", "Đáp án B,", "DA: C", etc.
-  // Colon/comma/space all valid separators between keyword and answer letter
-  const match = norm.match(/^(?:dap\s*an(?:\s+dung)?|answer|da|correct)\s*[:.,]?\s*([a-e])[.):\s,]?/);
+  // Match "Đáp án: B", "Đáp án đúng: A", "(Đáp án a)", "Đáp án B,", "DA: C",
+  // "Đáp án: B (Căn cứ...)", "Đáp án: B - Sai", "Đáp án: C  (Căn cứ: ...)"
+  // After the answer letter, allow: ) . : space , ( - or end of string
+  const match = norm.match(/^(?:\(?\s*)?(?:dap\s*an(?:\s+dung)?|answer|da|correct)\s*[:.,]?\s*([a-h])(?:\s*[.):\s,(-]|$)/);
   return match ? match[1].toUpperCase() : null;
 }
 
@@ -94,17 +95,17 @@ function stripQuestionPrefix(line: string): string {
  */
 function tryExtractOptionsFromLine(line: string): string[] | null {
   const trimmed = line.trim();
-  if (!/^[A-E][.)]/.test(trimmed)) return null;
+  if (!/^[A-H][.)]\*?/.test(trimmed)) return null;
 
   // Split on tab followed by option letter
-  const tabSplit = trimmed.split(/\t+(?=[A-E][.)]\s*)/);
-  if (tabSplit.length >= 2 && tabSplit.every(p => /^[A-E][.)]\s*/.test(p.trim()))) {
+  const tabSplit = trimmed.split(/\t+(?=[A-H][.)]\*?\s*)/);
+  if (tabSplit.length >= 2 && tabSplit.every(p => /^[A-H][.)]\*?\s*/.test(p.trim()))) {
     return tabSplit.map(p => p.trim());
   }
 
   // Split on 2+ spaces followed by option letter
-  const spaceSplit = trimmed.split(/\s{2,}(?=[A-E][.)]\s)/);
-  if (spaceSplit.length >= 2 && spaceSplit.every(p => /^[A-E][.)]\s*/.test(p.trim()))) {
+  const spaceSplit = trimmed.split(/\s{2,}(?=[A-H][.)]\*?\s)/);
+  if (spaceSplit.length >= 2 && spaceSplit.every(p => /^[A-H][.)]\*?\s*/.test(p.trim()))) {
     return spaceSplit.map(p => p.trim());
   }
 
@@ -118,8 +119,8 @@ function tryExtractOptionsFromLine(line: string): string[] | null {
  * Only splits when at least 2 consecutive option letters are found.
  */
 function splitEmbeddedOptions(line: string): string[] {
-  // Find all positions where an option letter starts: whitespace + [A-Ea-e] + [.)] + whitespace
-  const pattern = /\s+([A-Ea-e])[.)]\s+/g;
+  // Find all positions where an option letter starts: whitespace + [A-Ha-h] + [.)] + optional asterisk + whitespace
+  const pattern = /\s+([A-Ha-h])[.)]\*?\s+/g;
   const matches: { index: number; letter: string }[] = [];
   let m: RegExpExecArray | null;
   while ((m = pattern.exec(line)) !== null) {
@@ -130,7 +131,7 @@ function splitEmbeddedOptions(line: string): string[] {
   if (matches.length < 2) return [line];
 
   // Check that letters form a sequence starting from A (or a)
-  const expected = ["A", "B", "C", "D", "E"];
+  const expected = ["A", "B", "C", "D", "E", "F", "G", "H"];
   const foundLetters = matches.map(m => m.letter);
   if (foundLetters[0] !== expected[0] && foundLetters[0] !== "A") return [line];
 
@@ -210,9 +211,16 @@ export function parseWordText(text: string): ParseResult {
     // === 2. EXTRACT OPTIONS (uppercase A-E only) ===
     const options: string[] = [];
     const optionLetters: string[] = [];
+    let correctIndex = -1; // -1 means no answer provided // ADDED FOR ASTERISK IN OPTIONS
+    let hasAnswer = false;
 
     while (i < lines.length && getOptionLetter(lines[i]) !== null) {
       const letter = getOptionLetter(lines[i])!;
+      const isCorrectAsterisk = /^\s*\(?[A-Ha-hđĐ][.)]\s*\*/.test(lines[i]);
+      if (isCorrectAsterisk) {
+         correctIndex = options.length;
+         hasAnswer = true;
+      }
       let optText = stripOptionPrefix(lines[i]);
       i++;
 
@@ -243,8 +251,7 @@ export function parseWordText(text: string): ParseResult {
     }
 
     // === 3. EXTRACT ANSWER ===
-    let correctIndex = -1; // -1 means no answer provided
-    let hasAnswer = false;
+    // correctIndex and hasAnswer might already be set from options (asterisk)
 
     // Helper: find index of answer letter in optionLetters.
     // "D" can map to "D5" (Vietnamese đ as 5th option), "E" can also alias D5.
@@ -254,28 +261,135 @@ export function parseWordText(text: string): ParseResult {
       return idx;
     }
 
-    if (i < lines.length && getAnswerLetter(lines[i]) !== null) {
-      const answerLetter = getAnswerLetter(lines[i])!;
-      const idx = findAnswerIndex(answerLetter);
-      correctIndex = idx >= 0 ? idx : -1;
-      hasAnswer = true;
-      i++;
+    let inlineExplanation = "";
+    let matchedOptionFromText = -1;
+
+    // First try the standard letter match
+    if (i < lines.length) {
+      let answerLine = lines[i];
+      // If the answer keyword is isolated on its own line (e.g. from table split), merge with next line
+      if (/^(?:dap\s*an(?:\s+dung)?|answer|da|correct)\s*[:.,-]?\s*$/i.test(normalizeVi(answerLine)) && i + 1 < lines.length) {
+         answerLine = answerLine + " " + lines[i+1];
+      }
+
+      if (getAnswerLetter(answerLine) !== null) {
+        const answerLetter = getAnswerLetter(answerLine)!;
+        const idx = findAnswerIndex(answerLetter);
+        correctIndex = idx >= 0 ? idx : -1;
+        hasAnswer = true;
+        // If we merged, consume the extra line
+        if (answerLine !== lines[i]) i++;
+        i++;
+
+        // Try to extract inline explanation
+        const prefixRegex = /^[^\p{L}\p{N}]*(?:\(?\s*)?(?:đáp\s*án(?:\s*đúng)?|dáp\s*án|đap\s*an|dap\s*an(?:\s*dung)?|answer|da|correct)\s*[:.,]?\s*[a-h]\)?\s*[-.):\s,]*/iu;
+        const prefixMatch = answerLine.match(prefixRegex);
+        if (prefixMatch) {
+           inlineExplanation = answerLine.substring(prefixMatch[0].length).trim();
+        } else {
+           const letterRegex = new RegExp(`[:.,]\\s*${answerLetter}[.):\\s,-]+`, 'iu');
+           const m2 = answerLine.match(letterRegex);
+           if (m2) {
+              inlineExplanation = answerLine.substring(m2.index! + m2[0].length).trim();
+           }
+        }
+        // Clean up explanation: remove "- Đúng", "- Sai" prefix for T/F questions,
+        // and remove "(Căn cứ:" / "Giải thích:" prefix and trailing parenthesis
+        inlineExplanation = inlineExplanation
+          .replace(/^\s*-?\s*(?:Đúng|Sai|đúng|sai)\s*/i, "")
+          .replace(/^\s*\(\s*(?:căn\s*cứ|giải\s*thích)\s*[:.-]*\s*/i, "")
+          .replace(/^\s*(?:căn\s*cứ)\s*[:.-]*\s*/i, "")
+          .replace(/\)\s*$/, "")
+          .trim();
+      } else {
+        // Fallback: Check if the line says "Đáp án: <Text>"
+        const normPrefix = normalizeVi(answerLine);
+        const prefixTextRegex = /^(?:[^\w]*)(?:dap\s*an(?:\s+dung)?|answer|da|correct)\s*[:.,]?\s*(.+)/i;
+        const textMatch = normPrefix.match(prefixTextRegex);
+        
+        if (textMatch) {
+           // We found "Đáp án: Something"
+           let answerTextNorm = textMatch[1].trim();
+           
+           for (let optIdx = 0; optIdx < options.length; optIdx++) {
+              const optNorm = normalizeVi(options[optIdx]);
+              if (optNorm === answerTextNorm || optNorm.includes(answerTextNorm) || answerTextNorm.includes(optNorm)) {
+                 correctIndex = optIdx;
+                 hasAnswer = true;
+                 matchedOptionFromText = optIdx;
+                 break;
+              }
+           }
+           
+           if (hasAnswer) {
+              if (answerLine !== lines[i]) i++;
+              i++;
+           }
+        }
+      }
     }
 
     if (!hasAnswer) {
       // Try to find answer in the next few lines (in case it's slightly separated)
       let found = false;
       for (let lookahead = 0; lookahead < 3 && i + lookahead < lines.length; lookahead++) {
-        const candidate = lines[i + lookahead];
-        const letter = getAnswerLetter(candidate);
+        let candidate = lines[i + lookahead];
+        let merged = false;
+        
+        // If the answer keyword is isolated, merge with next line
+        if (/^(?:dap\s*an(?:\s+dung)?|answer|da|correct)\s*[:.,-]?\s*$/i.test(normalizeVi(candidate)) && i + lookahead + 1 < lines.length) {
+           candidate = candidate + " " + lines[i + lookahead + 1];
+           merged = true;
+        }
+
+        let letter = getAnswerLetter(candidate);
         if (letter !== null) {
           const idx = findAnswerIndex(letter);
           correctIndex = idx >= 0 ? idx : -1;
           hasAnswer = true;
-          i += lookahead + 1;
+
+          // Also try to extract inline explanation from this candidate line
+          const prefixRegex = /^[^\p{L}\p{N}]*(?:\(?\s*)?(?:đáp\s*án(?:\s*đúng)?|dáp\s*án|đap\s*an|dap\s*an(?:\s*dung)?|answer|da|correct)\s*[:.,]?\s*[a-h]\)?\s*[-.):\s,]*/iu;
+          const prefixMatch = candidate.match(prefixRegex);
+          if (prefixMatch) {
+             inlineExplanation = candidate.substring(prefixMatch[0].length).trim();
+             inlineExplanation = inlineExplanation
+               .replace(/^\s*-?\s*(?:Đúng|Sai|đúng|sai)\s*/i, "")
+               .replace(/^\s*\(\s*(?:căn\s*cứ|giải\s*thích)\s*[:.-]*\s*/i, "")
+               .replace(/^\s*(?:căn\s*cứ)\s*[:.-]*\s*/i, "")
+               .replace(/\)\s*$/, "")
+               .trim();
+          }
+
+          i += lookahead + (merged ? 2 : 1);
           found = true;
           break;
+        } else {
+          // Fallback: Check if the candidate line says "Đáp án: <Text>"
+          const normPrefix = normalizeVi(candidate);
+          const prefixTextRegex = /^(?:[^\w]*)(?:dap\s*an(?:\s+dung)?|answer|da|correct)\s*[:.,]?\s*(.+)/i;
+          const textMatch = normPrefix.match(prefixTextRegex);
+          
+          if (textMatch) {
+             let answerTextNorm = textMatch[1].trim();
+             for (let optIdx = 0; optIdx < options.length; optIdx++) {
+                const optNorm = normalizeVi(options[optIdx]);
+                if (optNorm === answerTextNorm || optNorm.includes(answerTextNorm) || answerTextNorm.includes(optNorm)) {
+                   correctIndex = optIdx;
+                   hasAnswer = true;
+                   matchedOptionFromText = optIdx;
+                   break;
+                }
+             }
+             
+             if (hasAnswer) {
+                i += lookahead + 1;
+                found = true;
+                break;
+             }
+          }
         }
+        
         // Stop lookahead if we hit a new question
         if (isQuestionStart(candidate)) break;
       }
@@ -286,15 +400,44 @@ export function parseWordText(text: string): ParseResult {
       }
     }
 
-    // === 4. SKIP EXPLANATION / LEGAL TEXT until next question ===
+    // === 4. EXTRACT EXPLANATION ===
+    let explanation = inlineExplanation; // Start with any inline explanation we found
+    const afterAnswerLines: string[] = [];
     while (i < lines.length && !isQuestionStart(lines[i])) {
+      const normLine = normalizeVi(lines[i]);
+      // Stop extracting if we hit a section header indicating a mass answer key (e.g. "Đáp án:", "Bảng đáp án", "Đáp án chi tiết")
+      if (/^(?:bang\s*|phieu\s*)?dap\s*an(?:(?:\s|_)chi\s*tiet)?\s*[:.-]*$/.test(normLine)) {
+         break;
+      }
+
+      if (getAnswerLetter(lines[i]) === null && !normLine.startsWith("dap an")) {
+        afterAnswerLines.push(lines[i]);
+      }
       i++;
+    }
+
+    if (afterAnswerLines.length > 0) {
+      const appended = afterAnswerLines.join(" ").trim();
+      const hasCanCu = normalizeVi(appended).includes("can cu");
+      const hasGiaiThich = /^giai\s*thich/.test(normalizeVi(appended));
+      const hasNgoac = /^\s*\(/.test(appended);
+      
+      if (hasCanCu || hasGiaiThich || hasNgoac || explanation || hasAnswer) {
+        const cleanAppended = appended
+          .replace(/^\s*-?\s*(?:Đúng|Sai|đúng|sai)\s*/i, "")
+          .replace(/^(?:giai\s*thich|giải\s*thích)\s*[:.-]*\s*/i, "")
+          .replace(/^\s*\(/, "")
+          .replace(/\)\s*$/, "")
+          .trim();
+        explanation = explanation ? `${explanation} ${cleanAppended}`.trim() : cleanAppended;
+      }
     }
 
     questions.push({
       question: questionText,
       options,
       correctIndex,
+      ...(explanation ? { explanation } : {}),
     });
   }
 
@@ -331,12 +474,17 @@ export function parseWordText(text: string): ParseResult {
  * Uses browser DOMParser for reliable HTML parsing.
  */
 function htmlToStructuredText(html: string): string {
+  // Pre-process HTML to convert bolded options to asterisk format so they are recognized as correct answers
+  // This supports the format where the correct option is bolded (bôi đen để chọn đáp án).
+  let processedHtml = html.replace(/<(?:strong|b)[^>]*>\s*([A-Ha-hđĐ])\s*<\/(?:strong|b)>\s*([.)])/gi, "$1$2* ");
+  processedHtml = processedHtml.replace(/<(?:strong|b)[^>]*>\s*([A-Ha-hđĐ])\s*([.)])/gi, "$1$2* ");
+
   const LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H"];
   const lines: string[] = [];
 
   // Use DOMParser if available (browser context)
   if (typeof DOMParser !== "undefined") {
-    const doc = new DOMParser().parseFromString(html, "text/html");
+    const doc = new DOMParser().parseFromString(processedHtml, "text/html");
 
     // Helper: extract text from a node tree, converting <br> to \n
     // so soft returns inside Word paragraphs/cells are preserved as line breaks.
@@ -418,11 +566,25 @@ function htmlToStructuredText(html: string): string {
     }
 
     walkNode(doc.body);
-    return lines.join("\n");
+    let finalStr = lines.join("\n");
+    // VERY IMPORTANT: Force split squashed options. If mammoth dumped "A. text B. text" onto one line,
+    // we must guarantee A., B., C., D. start on new lines!
+    function forceSplitOptions(match: string, p1: string, p2: string, offset: number, string: string): string {
+      const prefixContext = string.substring(Math.max(0, offset - 20), offset + p1.length);
+      const normContext = prefixContext.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[\u0111\u0110]/g, "d").toLowerCase();
+      if (/(?:dap\s*an(?:\s+dung)?|answer|da|correct)\s*[:.,-]?\s*$/i.test(normContext)) {
+          return match;
+      }
+      return `${p1}\n${p2}`;
+    }
+
+    finalStr = finalStr.replace(/([a-z0-9à-ỹ.,”"\])]\s*)([A-HđĐ]\.\*?)/gi, forceSplitOptions);
+    finalStr = finalStr.replace(/([a-z0-9à-ỹ.,”"\])]\s*)([A-HđĐ]\)\*?)/gi, forceSplitOptions);
+    return finalStr.split("\n").map(l => l.trim()).filter(l => l).join("\n");
   }
 
   // Fallback: regex-based HTML → text (server-side / no DOM)
-  let result = html;
+  let result = processedHtml;
   const LETTERS_FB = ["A", "B", "C", "D", "E", "F"];
   let listCounter = 0;
 
@@ -453,6 +615,20 @@ function htmlToStructuredText(html: string): string {
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"');
+
+  // VERY IMPORTANT: Force split squashed options
+  // Match any lowercase/uppercase letter, number, or common punctuation immediately followed by A., B., C., etc.
+  function forceSplitOptionsFb(match: string, p1: string, p2: string, offset: number, string: string): string {
+    const prefixContext = string.substring(Math.max(0, offset - 20), offset + p1.length);
+    const normContext = prefixContext.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[\u0111\u0110]/g, "d").toLowerCase();
+    if (/(?:dap\s*an(?:\s+dung)?|answer|da|correct)\s*[:.,-]?\s*$/i.test(normContext)) {
+        return match;
+    }
+    return `${p1}\n${p2}`;
+  }
+
+  result = result.replace(/([a-z0-9à-ỹ.,”"\])]\s*)([A-HđĐ]\.\*?)/gi, forceSplitOptionsFb);
+  result = result.replace(/([a-z0-9à-ỹ.,”"\])]\s*)([A-HđĐ]\)\*?)/gi, forceSplitOptionsFb);
 
   return result.split("\n").map((l) => l.trim()).filter((l) => l.length > 0).join("\n");
 }

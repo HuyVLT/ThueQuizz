@@ -30,6 +30,7 @@ export default function AdminPage() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [form, setForm] = useState(EMPTY_FORM);
   const [editId, setEditId] = useState<string | null>(null);
+  const [filterCategory, setFilterCategory] = useState<string>("all");
   const [jsonText, setJsonText] = useState("");
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -150,7 +151,11 @@ export default function AdminPage() {
     try {
       const buffer = await file.arrayBuffer();
       const text = await extractTextFromDocx(buffer);
+      console.log("=== THUE QUIZZ: EXTRACTED TEXT (FIRST 500 CHARS) ===", text.substring(0, 500));
+      
       const result = parseWordText(text);
+      console.log("=== THUE QUIZZ: PARSER RESULT ===", result);
+      
       if (result.success) {
         setWordParsed(result.questions);
         setWordWarnings(result.warnings || []);
@@ -205,6 +210,9 @@ export default function AdminPage() {
     flash("ok", "Đã xóa toàn bộ câu hỏi!");
   };
 
+  const categories = ["all", ...Array.from(new Set(questions.map(q => q.category).filter(Boolean))) as string[]];
+  const displayedQuestions = filterCategory === "all" ? questions : questions.filter(q => q.category === filterCategory);
+
   return (
     <div className={styles.container}>
       <div className={styles.sidebar}>
@@ -238,17 +246,29 @@ export default function AdminPage() {
         {tab === "list" && (
           <div>
             <div className={styles.pageHeader}>
-              <h1>Danh sách câu hỏi <span className={styles.countPill}>{questions.length}</span></h1>
+              <h1>Danh sách câu hỏi <span className={styles.countPill}>{displayedQuestions.length}</span></h1>
               <div className={styles.headerActions}>
+                {categories.length > 1 && (
+                  <select 
+                    className={styles.smBtn} 
+                    value={filterCategory} 
+                    onChange={e => setFilterCategory(e.target.value)}
+                    style={{ minWidth: "150px" }}
+                  >
+                    {categories.map(c => (
+                      <option key={c} value={c}>{c === "all" ? "Tất cả danh mục" : c}</option>
+                    ))}
+                  </select>
+                )}
                 <button className={styles.smBtn} onClick={handleExport}>Xuất JSON</button>
                 <button className={`${styles.smBtn} ${styles.smBtnDanger}`} onClick={handleReset}>Xóa tất cả</button>
               </div>
             </div>
-            {questions.length === 0 && (
+            {displayedQuestions.length === 0 && (
               <div className={styles.empty}>Chưa có câu hỏi nào. Hãy thêm hoặc import!</div>
             )}
             <div className={styles.qList}>
-              {questions.map((q, i) => (
+              {displayedQuestions.map((q, i) => (
                 <div key={q.id} className={styles.qCard}>
                   <div className={styles.qCardTop}>
                     <span className={styles.qIdx}>{i + 1}</span>
@@ -460,9 +480,23 @@ Giải thích: GTGT là viết tắt của...`}</div>
                           <span className={styles.wordPreviewNum}>{i + 1}</span>
                           <div>
                             <div className={styles.wordPreviewQ}>{q.question}</div>
+                            {q.options && q.options.length > 0 && (
+                               <div className={styles.qOpts} style={{ marginBottom: "8px", marginTop: "8px" }}>
+                                 {q.options.map((o, oi) => (
+                                   <span key={oi} className={`${styles.qOpt} ${oi === q.correctIndex ? styles.qOptCorrect : ""}`}>
+                                     {String.fromCharCode(65 + oi)}. {o}
+                                   </span>
+                                 ))}
+                               </div>
+                            )}
                             <div className={styles.wordPreviewAnswer}>
-                              Đáp án: {String.fromCharCode(65 + q.correctIndex)}. {q.options[q.correctIndex]}
+                              Đáp án: {q.correctIndex >= 0 ? `${String.fromCharCode(65 + q.correctIndex)}. ${q.options[q.correctIndex]}` : "Chưa xác định"}
                             </div>
+                            {q.explanation && (
+                              <div className={styles.wordPreviewExplanation} style={{ fontSize: "13px", color: "var(--text-secondary)", marginTop: "4px" }}>
+                                <span style={{ fontWeight: 600 }}>Giải thích:</span> {q.explanation}
+                              </div>
+                            )}
                           </div>
                         </div>
                       ))}

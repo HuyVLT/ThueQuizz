@@ -1,0 +1,17 @@
+{
+  "success": true,
+  "questions": [
+    {
+      "question": "Câu hỏi",
+      "options": [
+        "Opt A",
+        "Opt B",
+        "Opt C",
+        "Opt D"
+      ],
+      "correctIndex": 2,
+      "explanation": "( Khoản 6 Điều 1 Nghị định 70/2025NĐ-CP sửa đổi, bổ sung NĐ 123"
+    }
+  ],
+  "warnings": []
+}

@@ -23,10 +23,10 @@ export default function QuizPage() {
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState<UserAnswer[]>([]);
   const [selected, setSelected] = useState<number | null>(null);
-  const [revealed, setRevealed] = useState(false);
   const [count, setCount] = useState(10);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
   useEffect(() => {
     getQuestions().then((qs) => {
@@ -35,36 +35,54 @@ export default function QuizPage() {
     });
   }, []);
 
+  const categories = ["all", ...Array.from(new Set(questions.map(q => q.category).filter(Boolean))) as string[]];
+
+  const filteredQuestions = selectedCategory === "all"
+    ? questions
+    : questions.filter(q => q.category === selectedCategory);
+
   const startQuiz = useCallback(() => {
-    const pool = shuffle(questions).slice(0, Math.min(count, questions.length));
+    const pool = shuffle(filteredQuestions).slice(0, Math.min(count, filteredQuestions.length));
     setShuffled(pool);
     setAnswers([]);
     setCurrent(0);
     setSelected(null);
-    setRevealed(false);
     setPhase("quiz");
-  }, [questions, count]);
+    setTimeLeft(pool.length * 60); // 1 minute per question
+  }, [filteredQuestions, count]);
+
+  useEffect(() => {
+    if (phase === "quiz" && timeLeft !== null && timeLeft > 0) {
+      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+      return () => clearTimeout(timer);
+    } else if (phase === "quiz" && timeLeft === 0) {
+      setPhase("review");
+    }
+  }, [phase, timeLeft]);
 
   const handleSelect = (idx: number) => {
-    if (revealed) return;
     setSelected(idx);
-    setRevealed(true);
-    const q = shuffled[current];
-    // correctIndex === -1 means no answer -> not counted as correct or wrong
-    const isCorrect = q.correctIndex >= 0 && idx === q.correctIndex;
-    setAnswers((prev) => [
-      ...prev,
-      { questionId: q.id, selectedIndex: idx, correct: isCorrect },
-    ]);
   };
 
   const handleNext = () => {
+    // Record answer
+    if (selected !== null) {
+      const q = shuffled[current];
+      const isCorrect = q.correctIndex >= 0 && selected === q.correctIndex;
+      setAnswers((prev) => {
+        const next = [...prev];
+        next[current] = { questionId: q.id, selectedIndex: selected, correct: isCorrect };
+        return next;
+      });
+    }
+
     if (current + 1 >= shuffled.length) {
       setPhase("review");
     } else {
       setCurrent((c) => c + 1);
-      setSelected(null);
-      setRevealed(false);
+      // Try to restore previous choice if they already answered (but we don't have previous navigation yet)
+      const existingAns = answers[current + 1];
+      setSelected(existingAns ? existingAns.selectedIndex : null);
     }
   };
 
@@ -84,12 +102,6 @@ export default function QuizPage() {
       </div>
     );
   }
-
-  const categories = ["all", ...Array.from(new Set(questions.map(q => q.category).filter(Boolean))) as string[]];
-
-  const filteredQuestions = selectedCategory === "all"
-    ? questions
-    : questions.filter(q => q.category === selectedCategory);
 
   if (phase === "intro") {
     return (
@@ -135,7 +147,7 @@ export default function QuizPage() {
           <div className={styles.countSelect}>
             <label className={styles.countLabel}>Số câu muốn làm:</label>
             <div className={styles.countBtns}>
-              {[10, 20, 30, 50].map((n) => (
+              {[10, 20, 30, 50, 60].map((n) => (
                 <button
                   key={n}
                   className={`${styles.countBtn} ${count === n ? styles.countBtnActive : ""}`}
@@ -156,15 +168,7 @@ export default function QuizPage() {
 
           <button
             className={styles.startBtn}
-            onClick={() => {
-              const pool = shuffle(filteredQuestions).slice(0, Math.min(count, filteredQuestions.length));
-              setShuffled(pool);
-              setAnswers([]);
-              setCurrent(0);
-              setSelected(null);
-              setRevealed(false);
-              setPhase("quiz");
-            }}
+            onClick={startQuiz}
             disabled={filteredQuestions.length === 0}
           >
             Bắt đầu làm bài →
@@ -257,15 +261,29 @@ export default function QuizPage() {
         <div className={styles.quizHeader}>
           <span className={styles.qNum}>Câu {current + 1} / {shuffled.length}</span>
           {q.category && <span className={styles.qCategory}>{q.category}</span>}
+          {timeLeft !== null && (
+            <span className={styles.timer}>
+              ⏱️ {Math.floor(timeLeft / 60).toString().padStart(2, '0')}:{(timeLeft % 60).toString().padStart(2, '0')}
+            </span>
+          )}
           <button
             className={styles.endBtn}
             onClick={() => {
-              if (confirm(`Kết thúc bài làm? Bạn đã làm ${answers.length}/${shuffled.length} câu.`)) {
+              // Always save current unsubmitted answer 
+              if (selected !== null) {
+                const isCorrect = q.correctIndex >= 0 && selected === q.correctIndex;
+                setAnswers(prev => {
+                  const next = [...prev];
+                  next[current] = { questionId: q.id, selectedIndex: selected, correct: isCorrect };
+                  return next;
+                });
+              }
+              if (confirm(`Kết thúc bài làm? Bạn mới làm ${answers.length + (selected !== null && !answers[current] ? 1 : 0)}/${shuffled.length} câu.`)) {
                 setPhase("review");
               }
             }}
           >
-            Kết thúc
+            Nộp bài
           </button>
         </div>
 
@@ -273,13 +291,8 @@ export default function QuizPage() {
 
         <div className={styles.options}>
           {q.options.map((opt, i) => {
-            const noAns = q.correctIndex < 0;
             let cls = styles.optionBtn;
-            if (revealed) {
-              if (!noAns && i === q.correctIndex) cls = `${styles.optionBtn} ${styles.optionCorrect}`;
-              else if (i === selected) cls = noAns ? `${styles.optionBtn} ${styles.optionDim}` : `${styles.optionBtn} ${styles.optionWrong}`;
-              else cls = `${styles.optionBtn} ${styles.optionDim}`;
-            } else if (selected === i) {
+            if (selected === i) {
               cls = `${styles.optionBtn} ${styles.optionSelected}`;
             }
             return (
@@ -289,23 +302,16 @@ export default function QuizPage() {
               </button>
             );
           })}
-          {revealed && q.correctIndex < 0 && (
-            <div className={styles.noAnswerBanner}>Câu này không có đáp án</div>
-          )}
         </div>
 
-        {revealed && q.explanation && (
-          <div className={styles.explanation}>
-            <span className={styles.explainIcon}>💡</span>
-            {q.explanation}
-          </div>
-        )}
-
-        {revealed && (
-          <button className={styles.nextBtn} onClick={handleNext}>
-            {current + 1 >= shuffled.length ? "Xem kết quả" : "Câu tiếp theo →"}
-          </button>
-        )}
+        <button 
+          className={styles.nextBtn} 
+          onClick={handleNext} 
+          disabled={selected === null}
+          style={{ opacity: selected === null ? 0.5 : 1 }}
+        >
+          {current + 1 >= shuffled.length ? "Nộp bài" : "Câu tiếp theo →"}
+        </button>
       </div>
     </div>
   );
