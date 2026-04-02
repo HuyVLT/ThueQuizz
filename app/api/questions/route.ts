@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import Question from "@/lib/models/Question";
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // GET /api/questions - Lấy tất cả câu hỏi
 export async function GET() {
   try {
