@@ -12,9 +12,14 @@ function LeaderboardContent() {
   const { user } = useAuth();
   const [period, setPeriod] = useState<Period>("all");
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setEntries(getLeaderboard(period));
+    setLoading(true);
+    getLeaderboard(period).then((data) => {
+      setEntries(data);
+      setLoading(false);
+    });
   }, [period]);
 
   if (!user) return null;
@@ -24,7 +29,7 @@ function LeaderboardContent() {
   return (
     <div className={styles.container}>
       <div className={styles.content}>
-        <h1 className={styles.pageTitle}>Bảng xếp hạng</h1>
+        <h1 className={styles.pageTitle}>Bang xep hang</h1>
 
         <div className={styles.periodTabs}>
           {(["week", "month", "all"] as Period[]).map(p => (
@@ -33,16 +38,20 @@ function LeaderboardContent() {
               className={`${styles.periodBtn} ${period === p ? styles.periodBtnActive : ""}`}
               onClick={() => setPeriod(p)}
             >
-              {p === "week" && "Tuần này"}
-              {p === "month" && "Tháng này"}
-              {p === "all" && "Tất cả"}
+              {p === "week" && "Tuan nay"}
+              {p === "month" && "Thang nay"}
+              {p === "all" && "Tat ca"}
             </button>
           ))}
         </div>
 
-        {entries.length === 0 ? (
+        {loading ? (
           <div className={styles.empty}>
-            Chưa có ai trên bảng xếp hạng. Hãy là người đầu tiên!
+            Dang tai du lieu...
+          </div>
+        ) : entries.length === 0 ? (
+          <div className={styles.empty}>
+            Chua co ai tren bang xep hang. Hay la nguoi dau tien!
           </div>
         ) : (
           <>
@@ -56,7 +65,7 @@ function LeaderboardContent() {
                     <div className={styles.podiumName}>{entries[1].userName}</div>
                     <div className={styles.podiumXP}>{entries[1].totalXP} XP</div>
                     <div className={styles.podiumStats}>
-                      {entries[1].totalQuizzes} bài | {entries[1].avgScore}% TB
+                      {entries[1].totalQuizzes} bai | {entries[1].avgScore}% TB
                     </div>
                   </div>
                 )}
@@ -67,7 +76,7 @@ function LeaderboardContent() {
                   <div className={styles.podiumName}>{entries[0].userName}</div>
                   <div className={styles.podiumXP}>{entries[0].totalXP} XP</div>
                   <div className={styles.podiumStats}>
-                    {entries[0].totalQuizzes} bài | {entries[0].avgScore}% TB
+                    {entries[0].totalQuizzes} bai | {entries[0].avgScore}% TB
                   </div>
                 </div>
                 {entries.length >= 3 && (
@@ -77,7 +86,7 @@ function LeaderboardContent() {
                     <div className={styles.podiumName}>{entries[2].userName}</div>
                     <div className={styles.podiumXP}>{entries[2].totalXP} XP</div>
                     <div className={styles.podiumStats}>
-                      {entries[2].totalQuizzes} bài | {entries[2].avgScore}% TB
+                      {entries[2].totalQuizzes} bai | {entries[2].avgScore}% TB
                     </div>
                   </div>
                 )}
@@ -87,12 +96,12 @@ function LeaderboardContent() {
             {/* Full list */}
             <div className={styles.rankList}>
               <div className={styles.rankHeader}>
-                <span className={styles.rankHeaderCol}>Hạng</span>
-                <span className={styles.rankHeaderCol}>Người chơi</span>
+                <span className={styles.rankHeaderCol}>Hang</span>
+                <span className={styles.rankHeaderCol}>Nguoi choi</span>
                 <span className={styles.rankHeaderCol}>XP</span>
-                <span className={styles.rankHeaderCol}>Bài quiz</span>
+                <span className={styles.rankHeaderCol}>Bai quiz</span>
                 <span className={styles.rankHeaderCol}>TB</span>
-                <span className={styles.rankHeaderCol}>Cao nhất</span>
+                <span className={styles.rankHeaderCol}>Cao nhat</span>
                 <span className={styles.rankHeaderCol}>Streak</span>
               </div>
               {entries.map((entry, i) => {
@@ -117,7 +126,7 @@ function LeaderboardContent() {
                       </span>
                       <span className={styles.rankName}>
                         {entry.userName}
-                        {isCurrentUser && <span className={styles.youTag}>(Bạn)</span>}
+                        {isCurrentUser && <span className={styles.youTag}>(Ban)</span>}
                       </span>
                     </span>
                     <span className={styles.rankXP}>{entry.totalXP}</span>
@@ -135,7 +144,7 @@ function LeaderboardContent() {
 
             {userRank > 0 && (
               <div className={styles.myRankBanner}>
-                Bạn đang ở vị trí thứ <strong>{userRank}</strong> trên bảng xếp hạng!
+                Ban dang o vi tri thu <strong>{userRank}</strong> tren bang xep hang!
               </div>
             )}
           </>

@@ -94,6 +94,7 @@ function QuizContent() {
   const [showBadgePopup, setShowBadgePopup] = useState(false);
   const [srsMode, setSrsMode] = useState(false);
   const [dueCardCount, setDueCardCount] = useState(0);
+  const [finalTimeTaken, setFinalTimeTaken] = useState(0);
 
   useEffect(() => {
     getQuestions().then((qs) => {
@@ -104,10 +105,12 @@ function QuizContent() {
 
   useEffect(() => {
     if (user) {
-      const s = getUserStreak(user.id);
-      setStreak(s);
-      const due = getDueCards(user.id);
-      setDueCardCount(due.length);
+      getUserStreak(user.id).then((s) => {
+        setStreak(s);
+      });
+      getDueCards(user.id).then((due) => {
+        setDueCardCount(due.length);
+      });
     }
   }, [user, phase]);
 
@@ -117,10 +120,10 @@ function QuizContent() {
     ? questions
     : questions.filter(q => q.category === selectedCategory);
 
-  const startQuiz = useCallback(() => {
+  const startQuiz = useCallback(async () => {
     let pool: Question[];
     if (srsMode && user) {
-      const dueCards = getDueCards(user.id);
+      const dueCards = await getDueCards(user.id);
       const dueIds = new Set(dueCards.map(c => c.questionId));
       const dueQuestions = questions.filter(q => dueIds.has(q.id));
       pool = shuffle(dueQuestions).slice(0, Math.min(count, dueQuestions.length));
@@ -153,6 +156,54 @@ function QuizContent() {
     return () => clearTimeout(timer);
   }, [phase, timeLeft]);
 
+  const finishQuiz = useCallback(async () => {
+    if (!user) return;
+    const timeTaken = Math.round((Date.now() - quizStartTime) / 1000);
+    setFinalTimeTaken(timeTaken);
+    const currentAnswers = answers;
+    const countable = shuffled.filter(q => q.correctIndex >= 0).length;
+    const score = currentAnswers.filter(a => a && a.correct).length;
+    const percent = countable > 0 ? Math.round((score / countable) * 100) : 0;
+
+    const questionResults: QuestionResult[] = shuffled.map((q, i) => {
+      const ans = currentAnswers[i];
+      return {
+        questionId: q.id,
+        questionText: q.question,
+        selectedIndex: ans ? ans.selectedIndex : -1,
+        correctIndex: q.correctIndex,
+        correct: ans ? ans.correct : false,
+        category: q.category,
+      };
+    });
+
+    const oldBadges = streak?.badges || [];
+
+    const saveResponse = await saveResult({
+      userId: user.id,
+      userName: user.name,
+      date: new Date().toISOString(),
+      score,
+      total: countable,
+      percent,
+      category: selectedCategory,
+      timeTaken,
+      questionResults,
+    });
+
+    // Check for new badges from server response
+    if (saveResponse?.streak) {
+      const updatedStreak = saveResponse.streak;
+      const freshBadges = updatedStreak.badges.filter(b => !oldBadges.includes(b));
+      if (freshBadges.length > 0) {
+        setNewBadges(freshBadges);
+        setShowBadgePopup(true);
+      }
+      setStreak(updatedStreak);
+    }
+    setPhase("review");
+  }, [user, answers, shuffled, quizStartTime, selectedCategory, streak]);
+
   // Time up handling
   useEffect(() => {
     if (phase !== "quiz" || timeLeft !== 0) return;
@@ -170,7 +221,7 @@ function QuizContent() {
         setTimeLeft(perQuestionTime);
       }
     }
-  }, [timeLeft, phase, timerMode]);
+  }, [timeLeft, phase, timerMode, current, finishQuiz, perQuestionTime, shuffled.length]);
 
   const saveCurrentAnswer = useCallback(() => {
     if (selected !== null) {
@@ -191,51 +242,6 @@ function QuizContent() {
       });
     }
   }, [selected, shuffled, current]);
-
-  const finishQuiz = useCallback(() => {
-    if (!user) return;
-    const timeTaken = Math.round((Date.now() - quizStartTime) / 1000);
-    const currentAnswers = answers;
-    const countable = shuffled.filter(q => q.correctIndex >= 0).length;
-    const score = currentAnswers.filter(a => a && a.correct).length;
-    const percent = countable > 0 ? Math.round((score / countable) * 100) : 0;
-
-    const questionResults: QuestionResult[] = shuffled.map((q, i) => {
-      const ans = currentAnswers[i];
-      return {
-        questionId: q.id,
-        questionText: q.question,
-        selectedIndex: ans ? ans.selectedIndex : -1,
-        correctIndex: q.correctIndex,
-        correct: ans ? ans.correct : false,
-        category: q.category,
-      };
-    });
-
-    const oldBadges = streak?.badges || [];
-
-    saveResult({
-      userId: user.id,
-      userName: user.name,
-      date: new Date().toISOString(),
-      score,
-      total: countable,
-      percent,
-      category: selectedCategory,
-      timeTaken,
-      questionResults,
-    });
-
-    // Check for new badges
-    const updatedStreak = getUserStreak(user.id);
-    const freshBadges = updatedStreak.badges.filter(b => !oldBadges.includes(b));
-    if (freshBadges.length > 0) {
-      setNewBadges(freshBadges);
-      setShowBadgePopup(true);
-    }
-    setStreak(updatedStreak);
-    setPhase("review");
-  }, [user, answers, shuffled, quizStartTime, selectedCategory, streak]);
 
   const handleSelect = (idx: number) => {
     if (confirmed) return;
@@ -491,7 +497,7 @@ function QuizContent() {
   }
 
   if (phase === "review") {
-    const timeTaken = Math.round((Date.now() - quizStartTime) / 1000);
+    const timeTaken = finalTimeTaken;
 
     return (
       <div className={styles.container}>

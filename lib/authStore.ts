@@ -1,6 +1,6 @@
 /**
- * Authentication store - localStorage based for quiz users
- * Admin uses separate mock auth in admin page
+ * Authentication store - MongoDB backed via API
+ * localStorage used only for session caching (current user)
  */
 
 export interface QuizUser {
@@ -11,13 +11,8 @@ export interface QuizUser {
 }
 
 const AUTH_USER_KEY = "quiz_user";
-const AUTH_USERS_KEY = "quiz_users_db";
 
-function generateId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
-}
-
-/** Get current logged-in user */
+/** Get current logged-in user from session cache */
 export function getCurrentUser(): QuizUser | null {
   if (typeof window === "undefined") return null;
   try {
@@ -29,68 +24,118 @@ export function getCurrentUser(): QuizUser | null {
   }
 }
 
-/** Get all registered users */
-export function getAllUsers(): QuizUser[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const stored = localStorage.getItem(AUTH_USERS_KEY);
-    if (!stored) return [];
-    return JSON.parse(stored);
-  } catch {
-    return [];
-  }
-}
-
-/** Register a new user */
-export function registerUser(name: string, email: string): { success: boolean; user?: QuizUser; error?: string } {
-  const users = getAllUsers();
-  const existing = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-  if (existing) {
-    return { success: false, error: "Email đã được sử dụng" };
-  }
-
-  const newUser: QuizUser = {
-    id: generateId(),
-    name: name.trim(),
-    email: email.trim().toLowerCase(),
-    createdAt: new Date().toISOString(),
-  };
-
-  users.push(newUser);
-  localStorage.setItem(AUTH_USERS_KEY, JSON.stringify(users));
-  localStorage.setItem(AUTH_USER_KEY, JSON.stringify(newUser));
-  return { success: true, user: newUser };
-}
-
-/** Login user */
-export function loginUser(email: string): { success: boolean; user?: QuizUser; error?: string } {
-  const users = getAllUsers();
-  const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-  if (!user) {
-    return { success: false, error: "Không tìm thấy tài khoản với email này" };
-  }
+/** Set current user in session cache */
+function setCurrentUser(user: QuizUser): void {
+  if (typeof window === "undefined") return;
   localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
-  return { success: true, user };
 }
 
-/** Logout */
+/** Register a new user via API */
+export async function registerUser(
+  name: string,
+  email: string
+): Promise<{ success: boolean; user?: QuizUser; error?: string }> {
+  try {
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email }),
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+      return { success: false, error: data.error || "Dang ky that bai" };
+    }
+
+    setCurrentUser(data.user);
+    return { success: true, user: data.user };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Loi ket noi" };
+  }
+}
+
+/** Login user via API */
+export async function loginUser(
+  email: string
+): Promise<{ success: boolean; user?: QuizUser; error?: string }> {
+  try {
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+      return {
+        success: false,
+        error: data.error || "Dang nhap that bai",
+      };
+    }
+
+    setCurrentUser(data.user);
+    return { success: true, user: data.user };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Loi ket noi" };
+  }
+}
+
+/** Logout - clear session cache */
 export function logoutUser(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(AUTH_USER_KEY);
 }
 
-/** Update user profile */
-export function updateUserProfile(userId: string, updates: { name?: string }): QuizUser | null {
-  const users = getAllUsers();
-  const idx = users.findIndex(u => u.id === userId);
-  if (idx === -1) return null;
+/** Update user profile via API */
+export async function updateUserProfile(
+  userId: string,
+  updates: { name?: string }
+): Promise<QuizUser | null> {
+  try {
+    const res = await fetch("/api/auth/me", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, ...updates }),
+    });
 
-  if (updates.name) users[idx].name = updates.name.trim();
-  localStorage.setItem(AUTH_USERS_KEY, JSON.stringify(users));
+    const data = await res.json();
 
-  const current = getCurrentUser();
-  if (current && current.id === userId) {
-    localStorage.setItem(AUTH_USER_KEY, JSON.stringify(users[idx]));
+    if (!data.success) return null;
+
+    // Update session cache
+    const current = getCurrentUser();
+    if (current && current.id === userId) {
+      setCurrentUser(data.user);
+    }
+
+    return data.user;
+  } catch {
+    return null;
   }
-  return users[idx];
+}
+
+/** Verify session - check if cached user still exists in DB */
+export async function verifySession(): Promise<QuizUser | null> {
+  const cached = getCurrentUser();
+  if (!cached) return null;
+
+  try {
+    const res = await fetch(`/api/auth/me?id=${cached.id}`);
+    const data = await res.json();
+
+    if (!data.success) {
+      // User no longer exists - clear session
+      logoutUser();
+      return null;
+    }
+
+    // Update cache with fresh data
+    setCurrentUser(data.user);
+    return data.user;
+  } catch {
+    // Network error - return cached data
+    return cached;
+  }
 }

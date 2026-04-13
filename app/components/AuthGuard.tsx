@@ -10,13 +10,14 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   if (isLoading) {
     return (
       <div className={styles.container}>
         <div className={styles.card}>
           <div className={styles.spinner}></div>
-          <p className={styles.loadingText}>Đang tải...</p>
+          <p className={styles.loadingText}>Dang tai...</p>
         </div>
       </div>
     );
@@ -26,28 +27,32 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
     if (!email.trim()) {
-      setError("Vui lòng nhập email");
+      setError("Vui long nhap email");
       return;
     }
 
     if (mode === "register") {
       if (!name.trim()) {
-        setError("Vui lòng nhập tên");
+        setError("Vui long nhap ten");
         return;
       }
-      const result = register(name.trim(), email.trim());
+      setSubmitting(true);
+      const result = await register(name.trim(), email.trim());
+      setSubmitting(false);
       if (!result.success) {
-        setError(result.error || "Đăng ký thất bại");
+        setError(result.error || "Dang ky that bai");
       }
     } else {
-      const result = login(email.trim());
+      setSubmitting(true);
+      const result = await login(email.trim());
+      setSubmitting(false);
       if (!result.success) {
-        setError(result.error || "Đăng nhập thất bại");
+        setError(result.error || "Dang nhap that bai");
       }
     }
   };
@@ -59,12 +64,12 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
           <span className={styles.icon}>T</span>
         </div>
         <h1 className={styles.title}>
-          {mode === "login" ? "Đăng nhập" : "Tạo tài khoản"}
+          {mode === "login" ? "Dang nhap" : "Tao tai khoan"}
         </h1>
         <p className={styles.subtitle}>
           {mode === "login"
-            ? "Nhập email để tiếp tục ôn tập"
-            : "Đăng ký để bắt đầu hành trình học tập"}
+            ? "Nhap email de tiep tuc on tap"
+            : "Dang ky de bat dau hanh trinh hoc tap"}
         </p>
 
         <form onSubmit={handleSubmit} className={styles.form}>
@@ -72,13 +77,14 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
           {mode === "register" && (
             <div className={styles.field}>
-              <label>Tên hiển thị</label>
+              <label>Ten hien thi</label>
               <input
                 type="text"
-                placeholder="VD: Nguyễn Văn A"
+                placeholder="VD: Nguyen Van A"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 autoFocus={mode === "register"}
+                disabled={submitting}
               />
             </div>
           )}
@@ -91,27 +97,32 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoFocus={mode === "login"}
+              disabled={submitting}
             />
           </div>
 
-          <button type="submit" className={styles.submitBtn}>
-            {mode === "login" ? "Đăng nhập" : "Đăng ký"}
+          <button type="submit" className={styles.submitBtn} disabled={submitting}>
+            {submitting
+              ? "Dang xu ly..."
+              : mode === "login"
+              ? "Dang nhap"
+              : "Dang ky"}
           </button>
         </form>
 
         <div className={styles.switchMode}>
           {mode === "login" ? (
             <>
-              Chưa có tài khoản?{" "}
-              <button onClick={() => { setMode("register"); setError(null); }}>
-                Đăng ký ngay
+              Chua co tai khoan?{" "}
+              <button onClick={() => { setMode("register"); setError(null); }} disabled={submitting}>
+                Dang ky ngay
               </button>
             </>
           ) : (
             <>
-              Đã có tài khoản?{" "}
-              <button onClick={() => { setMode("login"); setError(null); }}>
-                Đăng nhập
+              Da co tai khoan?{" "}
+              <button onClick={() => { setMode("login"); setError(null); }} disabled={submitting}>
+                Dang nhap
               </button>
             </>
           )}
