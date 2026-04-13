@@ -17,7 +17,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       <div className={styles.container}>
         <div className={styles.card}>
           <div className={styles.spinner}></div>
-          <p className={styles.loadingText}>Dang tai...</p>
+          <p className={styles.loadingText}>Đang tải...</p>
         </div>
       </div>
     );
@@ -32,27 +32,27 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     setError(null);
 
     if (!email.trim()) {
-      setError("Vui long nhap email");
+      setError("Vui lòng nhập email");
       return;
     }
 
     if (mode === "register") {
       if (!name.trim()) {
-        setError("Vui long nhap ten");
+        setError("Vui lòng nhập tên");
         return;
       }
       setSubmitting(true);
       const result = await register(name.trim(), email.trim());
       setSubmitting(false);
       if (!result.success) {
-        setError(result.error || "Dang ky that bai");
+        setError(result.error || "Đăng ký thất bại");
       }
     } else {
       setSubmitting(true);
       const result = await login(email.trim());
       setSubmitting(false);
       if (!result.success) {
-        setError(result.error || "Dang nhap that bai");
+        setError(result.error || "Đăng nhập thất bại");
       }
     }
   };
@@ -64,12 +64,12 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
           <span className={styles.icon}>T</span>
         </div>
         <h1 className={styles.title}>
-          {mode === "login" ? "Dang nhap" : "Tao tai khoan"}
+          {mode === "login" ? "Đăng nhập" : "Tạo tài khoản"}
         </h1>
         <p className={styles.subtitle}>
           {mode === "login"
-            ? "Nhap email de tiep tuc on tap"
-            : "Dang ky de bat dau hanh trinh hoc tap"}
+            ? "Nhập email để tiếp tục ôn tập"
+            : "Đăng ký để bắt đầu hành trình học tập"}
         </p>
 
         <form onSubmit={handleSubmit} className={styles.form}>
@@ -77,7 +77,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
           {mode === "register" && (
             <div className={styles.field}>
-              <label>Ten hien thi</label>
+              <label>Tên hiển thị</label>
               <input
                 type="text"
                 placeholder="VD: Nguyen Van A"
@@ -103,26 +103,26 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
           <button type="submit" className={styles.submitBtn} disabled={submitting}>
             {submitting
-              ? "Dang xu ly..."
+              ? "Đang xử lý..."
               : mode === "login"
-              ? "Dang nhap"
-              : "Dang ky"}
+              ? "Đăng nhập"
+              : "Đăng ký"}
           </button>
         </form>
 
         <div className={styles.switchMode}>
           {mode === "login" ? (
             <>
-              Chua co tai khoan?{" "}
+              Chưa có tài khoản?{" "}
               <button onClick={() => { setMode("register"); setError(null); }} disabled={submitting}>
-                Dang ky ngay
+                Đăng ký ngay
               </button>
             </>
           ) : (
             <>
-              Da co tai khoan?{" "}
+              Đã có tài khoản?{" "}
               <button onClick={() => { setMode("login"); setError(null); }} disabled={submitting}>
-                Dang nhap
+                Đăng nhập
               </button>
             </>
           )}

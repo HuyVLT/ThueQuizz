@@ -45,13 +45,13 @@ export async function registerUser(
     const data = await res.json();
 
     if (!data.success) {
-      return { success: false, error: data.error || "Dang ky that bai" };
+      return { success: false, error: data.error || "Đăng ký thất bại" };
     }
 
     setCurrentUser(data.user);
     return { success: true, user: data.user };
   } catch (error: any) {
-    return { success: false, error: error.message || "Loi ket noi" };
+    return { success: false, error: error.message || "Lỗi kết nối" };
   }
 }
 
@@ -71,14 +71,14 @@ export async function loginUser(
     if (!data.success) {
       return {
         success: false,
-        error: data.error || "Dang nhap that bai",
+        error: data.error || "Đăng nhập thất bại",
       };
     }
 
     setCurrentUser(data.user);
     return { success: true, user: data.user };
   } catch (error: any) {
-    return { success: false, error: error.message || "Loi ket noi" };
+    return { success: false, error: error.message || "Lỗi kết nối" };
   }
 }
 

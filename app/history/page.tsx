@@ -67,8 +67,8 @@ function HistoryContent() {
     return (
       <div className={styles.container}>
         <div className={styles.content}>
-          <h1 className={styles.pageTitle}>Lich su & Thong ke</h1>
-          <div className={styles.empty}>Dang tai du lieu...</div>
+          <h1 className={styles.pageTitle}>Lịch sử & Thống kê</h1>
+          <div className={styles.empty}>Đang tải dữ liệu...</div>
         </div>
       </div>
     );
@@ -77,7 +77,7 @@ function HistoryContent() {
   return (
     <div className={styles.container}>
       <div className={styles.content}>
-        <h1 className={styles.pageTitle}>Lich su & Thong ke</h1>
+        <h1 className={styles.pageTitle}>Lịch sử & Thống kê</h1>
 
         <div className={styles.tabs}>
           {(["history", "progress", "difficulties", "profile"] as Tab[]).map(t => (
@@ -86,10 +86,10 @@ function HistoryContent() {
               className={`${styles.tabBtn} ${tab === t ? styles.tabBtnActive : ""}`}
               onClick={() => setTab(t)}
             >
-              {t === "history" && "Lich su lam bai"}
-              {t === "progress" && "Tien bo"}
-              {t === "difficulties" && "Cau kho nhat"}
-              {t === "profile" && "Ho so"}
+              {t === "history" && "Lịch sử làm bài"}
+              {t === "progress" && "Tiến bộ"}
+              {t === "difficulties" && "Câu khó nhất"}
+              {t === "profile" && "Hồ sơ"}
             </button>
           ))}
         </div>
@@ -98,7 +98,7 @@ function HistoryContent() {
         {tab === "history" && (
           <div>
             {results.length === 0 ? (
-              <div className={styles.empty}>Chua co ket qua nao. Hay bat dau lam quiz!</div>
+              <div className={styles.empty}>Chưa có kết quả nào. Hãy bắt đầu làm quiz!</div>
             ) : (
               <div className={styles.resultList}>
                 {results.map(r => (
@@ -114,7 +114,7 @@ function HistoryContent() {
                         <span className={styles.resultDate}>
                           {new Date(r.date).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                         </span>
-                        <span className={styles.resultCategory}>{r.category === "all" ? "Tat ca" : r.category}</span>
+                        <span className={styles.resultCategory}>{r.category === "all" ? "Tất cả" : r.category}</span>
                         <span className={styles.resultTime}>
                           {Math.floor(r.timeTaken / 60)}:{(r.timeTaken % 60).toString().padStart(2, "0")}
                         </span>
@@ -143,10 +143,10 @@ function HistoryContent() {
         {tab === "progress" && (
           <div>
             {progress.length === 0 ? (
-              <div className={styles.empty}>Chua co du lieu. Hay lam quiz de xem bieu do tien bo!</div>
+              <div className={styles.empty}>Chưa có dữ liệu. Hãy làm quiz để xem biểu đồ tiến bộ!</div>
             ) : (
               <div className={styles.chartCard}>
-                <h2 className={styles.chartTitle}>Diem so qua cac lan lam</h2>
+                <h2 className={styles.chartTitle}>Điểm số qua các lần làm</h2>
                 <div className={styles.chart}>
                   <div className={styles.chartYAxis}>
                     <span>100%</span>
@@ -187,17 +187,17 @@ function HistoryContent() {
                     <span className={styles.summaryValue}>
                       {progress.length > 0 ? Math.round(progress.reduce((a, p) => a + p.percent, 0) / progress.length) : 0}%
                     </span>
-                    <span className={styles.summaryLabel}>Diem trung binh</span>
+                    <span className={styles.summaryLabel}>Điểm trung bình</span>
                   </div>
                   <div className={styles.summaryItem}>
                     <span className={styles.summaryValue}>
                       {progress.length > 0 ? Math.max(...progress.map(p => p.percent)) : 0}%
                     </span>
-                    <span className={styles.summaryLabel}>Diem cao nhat</span>
+                    <span className={styles.summaryLabel}>Điểm cao nhất</span>
                   </div>
                   <div className={styles.summaryItem}>
                     <span className={styles.summaryValue}>{progress.length}</span>
-                    <span className={styles.summaryLabel}>Tong bai lam</span>
+                    <span className={styles.summaryLabel}>Tổng bài làm</span>
                   </div>
                 </div>
               </div>
@@ -209,10 +209,10 @@ function HistoryContent() {
         {tab === "difficulties" && (
           <div>
             {difficulties.length === 0 ? (
-              <div className={styles.empty}>Chua co du lieu thong ke.</div>
+              <div className={styles.empty}>Chưa có dữ liệu thống kê.</div>
             ) : (
               <div className={styles.diffCard}>
-                <h2 className={styles.chartTitle}>Cau hoi kho nhat (ty le sai cao)</h2>
+                <h2 className={styles.chartTitle}>Câu hỏi khó nhất (tỷ lệ sai cao)</h2>
                 <div className={styles.diffList}>
                   {difficulties.slice(0, 20).map((d, i) => (
                     <div key={d.questionId} className={styles.diffItem}>
@@ -222,7 +222,7 @@ function HistoryContent() {
                         {d.category && <span className={styles.diffCategory}>{d.category}</span>}
                         <div className={styles.diffStats}>
                           <span className={styles.diffErrorRate}>{d.errorRate}% sai</span>
-                          <span className={styles.diffAttempts}>{d.totalAttempts} lan thu</span>
+                          <span className={styles.diffAttempts}>{d.totalAttempts} lần thử</span>
                         </div>
                         <div className={styles.diffBarBg}>
                           <div
@@ -251,24 +251,24 @@ function HistoryContent() {
             <div className={styles.profileStats}>
               <div className={styles.profileStatItem}>
                 <span className={styles.profileStatValue}>{streak.totalXP}</span>
-                <span className={styles.profileStatLabel}>Tong XP</span>
+                <span className={styles.profileStatLabel}>Tổng XP</span>
               </div>
               <div className={styles.profileStatItem}>
                 <span className={styles.profileStatValue}>{streak.currentStreak}</span>
-                <span className={styles.profileStatLabel}>Streak hien tai</span>
+                <span className={styles.profileStatLabel}>Streak hiện tại</span>
               </div>
               <div className={styles.profileStatItem}>
                 <span className={styles.profileStatValue}>{streak.longestStreak}</span>
-                <span className={styles.profileStatLabel}>Streak dai nhat</span>
+                <span className={styles.profileStatLabel}>Streak dài nhất</span>
               </div>
               <div className={styles.profileStatItem}>
                 <span className={styles.profileStatValue}>{streak.quizCount}</span>
-                <span className={styles.profileStatLabel}>Bai quiz</span>
+                <span className={styles.profileStatLabel}>Bài quiz</span>
               </div>
             </div>
 
             <div className={styles.allBadges}>
-              <h3 className={styles.badgesTitle}>Huy hieu ({streak.badges.length}/{BADGES.length})</h3>
+              <h3 className={styles.badgesTitle}>Huy hiệu ({streak.badges.length}/{BADGES.length})</h3>
               <div className={styles.badgesGrid}>
                 {BADGES.map(badge => {
                   const unlocked = streak.badges.includes(badge.id);

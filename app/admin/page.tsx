@@ -12,6 +12,7 @@ import {
   resetQuestions,
   type Question,
 } from "@/lib/questionStore";
+import { useAuth } from "../components/AuthContext";
 import { extractTextFromDocx, parseWordText, type ParsedQuestion } from "@/lib/wordParser";
 import styles from "./admin.module.css";
 
@@ -136,6 +137,7 @@ function LoginForm({ onLogin }: { onLogin: () => void }) {
 }
 
 export default function AdminPage() {
+  const { user, isLoading } = useAuth();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
 
@@ -158,11 +160,17 @@ export default function AdminPage() {
   const [wordLoading, setWordLoading] = useState(false);
   const [wordDragOver, setWordDragOver] = useState(false);
 
-  // Check auth on mount
+  // Check auth on mount or when user context changes
   useEffect(() => {
-    setIsAuthenticated(getAuthState());
-    setAuthChecked(true);
-  }, []);
+    if (isLoading) return; // Wait until global auth loads
+    if (user && user.email === ADMIN_EMAIL) {
+      setIsAuthenticated(true);
+      setAuthChecked(true);
+    } else {
+      setIsAuthenticated(getAuthState());
+      setAuthChecked(true);
+    }
+  }, [user, isLoading]);
 
   const reload = useCallback(async () => {
     const qs = await getQuestions();
