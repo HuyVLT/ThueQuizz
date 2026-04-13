@@ -2,14 +2,162 @@
   display: flex;
   min-height: 100vh;
   font-family: 'Be Vietnam Pro', 'Segoe UI', sans-serif;
-  background: #f5f3ee;
+  background: var(--bg-page);
 }
 
-/* SIDEBAR */
+/* ============================================================ */
+/* LOGIN                                                         */
+/* ============================================================ */
+.loginContainer {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-page);
+  padding: 2rem 1rem;
+  font-family: 'Be Vietnam Pro', 'Segoe UI', sans-serif;
+}
+
+.loginCard {
+  background: var(--bg-card);
+  border-radius: 20px;
+  padding: 2.5rem 2rem;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: var(--shadow-lg);
+}
+
+.loginIcon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.25rem;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(26,122,60,0.25);
+}
+
+.loginTitle {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  text-align: center;
+  margin: 0 0 0.4rem;
+}
+
+.loginSubtitle {
+  font-size: 0.88rem;
+  color: var(--text-tertiary);
+  text-align: center;
+  margin: 0 0 2rem;
+  line-height: 1.5;
+}
+
+.loginForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.loginField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.loginField label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-tertiary);
+}
+
+.loginField input {
+  padding: 12px 14px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 10px;
+  font-size: 0.93rem;
+  color: var(--text-primary);
+  background: var(--bg-input);
+  font-family: inherit;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.loginField input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(26,122,60,0.08);
+}
+
+.passwordWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.passwordWrap input {
+  padding-right: 60px;
+}
+
+.passwordToggle {
+  position: absolute;
+  right: 8px;
+  padding: 4px 10px;
+  background: #f7f5f0;
+  border: 1px solid #e0ddd8;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #888;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.passwordToggle:hover {
+  background: #eee;
+  color: #555;
+}
+
+.loginError {
+  background: #fde8e8;
+  border: 1.5px solid #f5c6c6;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #c03030;
+  text-align: center;
+}
+
+.loginBtn {
+  width: 100%;
+  padding: 14px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-family: inherit;
+  margin-top: 0.5rem;
+}
+.loginBtn:hover { background: var(--color-primary-dark); }
+
+/* ============================================================ */
+/* SIDEBAR                                                       */
+/* ============================================================ */
 .sidebar {
   width: 240px;
   min-width: 240px;
-  background: #1a1a1a;
+  background: var(--bg-sidebar);
   display: flex;
   flex-direction: column;
   padding: 1.5rem 1rem;
@@ -41,7 +189,39 @@
 }
 .navBtn:hover { background: #2a2a2a; color: #fff; }
 .navActive { background: #2d7a1f !important; color: #fff !important; }
-.sidebarFooter { margin-top: auto; }
+.sidebarFooter {
+  margin-top: auto;
+  border-top: 1px solid #333;
+  padding-top: 1rem;
+}
+.userInfo {
+  padding: 8px 12px;
+  margin-bottom: 4px;
+}
+.userEmail {
+  color: #888;
+  font-size: 0.75rem;
+  word-break: break-all;
+}
+.logoutBtn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: #e04040;
+  font-size: 0.82rem;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.logoutBtn:hover {
+  background: #2a2020;
+  color: #ff5555;
+}
 .previewLink {
   display: block;
   color: #666;
@@ -59,6 +239,7 @@
   padding: 2rem;
   overflow-y: auto;
   position: relative;
+  background: var(--bg-page);
 }
 .toast {
   position: fixed;
@@ -71,8 +252,8 @@
   z-index: 100;
   box-shadow: 0 4px 20px rgba(0,0,0,0.15);
 }
-.toastOk { background: #1a7a3c; color: #fff; }
-.toastErr { background: #c03030; color: #fff; }
+.toastOk { background: var(--color-primary); color: #fff; }
+.toastErr { background: var(--color-danger); color: #fff; }
 
 /* PAGE HEADER */
 .pageHeader {
@@ -86,15 +267,15 @@
 .pageHeader h1 {
   font-size: 1.4rem;
   font-weight: 800;
-  color: #1a1a1a;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   gap: 8px;
   margin: 0;
 }
 .countPill {
-  background: #e8f5e2;
-  color: #2d7a1f;
+  background: var(--color-primary-bg);
+  color: var(--color-primary-text);
   font-size: 0.8rem;
   font-weight: 700;
   padding: 2px 10px;
@@ -103,17 +284,17 @@
 .headerActions { display: flex; gap: 8px; }
 .smBtn {
   padding: 8px 16px;
-  background: #fff;
-  border: 1.5px solid #ddd;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-color);
   border-radius: 8px;
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
-  color: #444;
+  color: var(--text-tertiary);
   transition: all 0.15s;
 }
-.smBtn:hover { border-color: #888; color: #1a1a1a; }
+.smBtn:hover { border-color: var(--text-tertiary); color: var(--text-primary); }
 .smBtnDanger { color: #c03030 !important; }
 .smBtnDanger:hover { border-color: #c03030 !important; background: #fde8e8 !important; }
 .empty {
@@ -130,10 +311,10 @@
   gap: 10px;
 }
 .qCard {
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 12px;
   padding: 1rem 1.25rem;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  box-shadow: var(--shadow-sm);
 }
 .qCardTop {
   display: flex;
@@ -176,29 +357,29 @@
 .editBtn:hover { border-color: #1a7a3c; color: #1a7a3c; }
 .delBtn { border-color: #fcc; background: #fff; color: #c03030; }
 .delBtn:hover { background: #fde8e8; }
-.qText { font-size: 0.92rem; font-weight: 600; color: #1a1a1a; margin: 0 0 8px; line-height: 1.5; }
+.qText { font-size: 0.92rem; font-weight: 600; color: var(--text-primary); margin: 0 0 8px; line-height: 1.5; }
 .qOpts { display: flex; flex-wrap: wrap; gap: 6px; }
 .qOpt {
   font-size: 0.8rem;
-  color: #666;
-  background: #f7f5f0;
+  color: var(--text-secondary);
+  background: var(--bg-card-alt);
   padding: 3px 10px;
   border-radius: 6px;
 }
-.qOptCorrect { background: #e8f5e2; color: #1a5c2a; font-weight: 700; }
+.qOptCorrect { background: var(--color-primary-bg); color: var(--color-primary); font-weight: 700; }
 
 /* FORM */
 .formWrap {
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 16px;
   padding: 2rem;
   max-width: 640px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  box-shadow: var(--shadow-sm);
 }
 .formTitle {
   font-size: 1.3rem;
   font-weight: 800;
-  color: #1a1a1a;
+  color: var(--text-primary);
   margin: 0 0 1.5rem;
 }
 .field {
@@ -208,17 +389,17 @@
   display: block;
   font-size: 0.85rem;
   font-weight: 700;
-  color: #444;
+  color: var(--text-tertiary);
   margin-bottom: 6px;
 }
 .field input, .field textarea {
   width: 100%;
   padding: 10px 12px;
-  border: 1.5px solid #e0ddd8;
+  border: 1.5px solid var(--border-color);
   border-radius: 8px;
   font-size: 0.93rem;
-  color: #1a1a1a;
-  background: #fff;
+  color: var(--text-primary);
+  background: var(--bg-input);
   font-family: inherit;
   resize: vertical;
   box-sizing: border-box;
@@ -226,7 +407,7 @@
 }
 .field input:focus, .field textarea:focus {
   outline: none;
-  border-color: #1a7a3c;
+  border-color: var(--color-primary);
 }
 .optRow {
   display: flex;
@@ -294,7 +475,7 @@
 .formActions { display: flex; gap: 10px; margin-top: 1.5rem; }
 .submitBtn {
   padding: 11px 24px;
-  background: #1a7a3c;
+  background: var(--color-primary);
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -304,13 +485,13 @@
   font-family: inherit;
   transition: background 0.15s;
 }
-.submitBtn:hover:not(:disabled) { background: #155e2f; }
+.submitBtn:hover:not(:disabled) { background: var(--color-primary-dark); }
 .submitBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 .cancelBtn {
   padding: 11px 20px;
-  background: #fff;
-  color: #666;
-  border: 1.5px solid #ddd;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border: 1.5px solid var(--border-color);
   border-radius: 8px;
   font-size: 0.9rem;
   font-weight: 600;
@@ -318,27 +499,27 @@
   font-family: inherit;
   transition: all 0.15s;
 }
-.cancelBtn:hover { border-color: #888; color: #333; }
+.cancelBtn:hover { border-color: var(--text-tertiary); color: var(--text-primary); }
 
 /* IMPORT */
 .importWrap { max-width: 640px; }
 .importWrap h1 {
   font-size: 1.3rem;
   font-weight: 800;
-  color: #1a1a1a;
+  color: var(--text-primary);
   margin: 0 0 1.5rem;
 }
 .importSection {
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 14px;
   padding: 1.5rem;
   margin-bottom: 1.25rem;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  box-shadow: var(--shadow-sm);
 }
 .importSection h2 {
   font-size: 1rem;
   font-weight: 700;
-  color: #1a1a1a;
+  color: var(--text-primary);
   margin: 0 0 0.5rem;
 }
 .importDesc {
@@ -463,6 +644,10 @@
   color: #1a7a3c;
   font-weight: 600;
 }
+.wordPreviewExplanation {
+  font-size: 0.78rem;
+  color: #777;
+}
 .warningBox {
   background: #fffbe6;
   border: 1.5px solid #f0c040;
@@ -506,3 +691,335 @@
   border-color: #1a7a3c !important;
 }
 .smBtnPrimary:hover { background: #155e2f !important; }
+
+/* ============================================================ */
+/* RESPONSIVE                                                    */
+/* ============================================================ */
+
+/* Tablet */
+@media (max-width: 900px) {
+  .sidebar {
+    width: 200px;
+    min-width: 200px;
+    padding: 1rem 0.75rem;
+  }
+  .main {
+    padding: 1.5rem;
+  }
+  .pageHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .headerActions {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .container {
+    flex-direction: column;
+    min-height: auto;
+  }
+  
+  /* Sidebar becomes horizontal top nav */
+  .sidebar {
+    width: 100%;
+    min-width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 0.75rem;
+    gap: 6px;
+    align-items: center;
+  }
+  .sidebarLogo {
+    margin-bottom: 0;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.88rem;
+  }
+  .navBtn {
+    padding: 7px 12px;
+    font-size: 0.78rem;
+    border-radius: 20px;
+    width: auto;
+    flex-shrink: 0;
+  }
+  .sidebarFooter {
+    margin-top: 0;
+    border-top: none;
+    padding-top: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+  }
+  .userInfo {
+    padding: 0;
+    margin-bottom: 0;
+    display: none;
+  }
+  .logoutBtn {
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    border-radius: 20px;
+    background: #2a2020;
+    width: auto;
+    white-space: nowrap;
+  }
+
+  /* Main content */
+  .main {
+    padding: 1rem 0.75rem;
+  }
+  .toast {
+    top: auto;
+    bottom: 1rem;
+    right: 0.75rem;
+    left: 0.75rem;
+    text-align: center;
+    font-size: 0.82rem;
+    padding: 10px 16px;
+  }
+
+  /* Page header */
+  .pageHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  .pageHeader h1 {
+    font-size: 1.1rem;
+  }
+  .headerActions {
+    flex-wrap: wrap;
+    width: 100%;
+    gap: 6px;
+  }
+  .smBtn {
+    padding: 7px 12px;
+    font-size: 0.78rem;
+  }
+
+  /* Question list */
+  .qCard {
+    padding: 0.85rem 1rem;
+  }
+  .qCardTop {
+    flex-wrap: wrap;
+  }
+  .qText {
+    font-size: 0.85rem;
+  }
+  .qOpts {
+    gap: 4px;
+  }
+  .qOpt {
+    font-size: 0.72rem;
+    padding: 2px 8px;
+  }
+  .editBtn, .delBtn {
+    padding: 3px 8px;
+    font-size: 0.72rem;
+  }
+
+  /* Form */
+  .formWrap {
+    padding: 1.25rem;
+    border-radius: 14px;
+  }
+  .formTitle {
+    font-size: 1.1rem;
+    margin-bottom: 1.25rem;
+  }
+  .field input, .field textarea {
+    padding: 9px 10px;
+    font-size: 0.88rem;
+  }
+  .optRow {
+    gap: 6px;
+  }
+  .correctToggle {
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
+    font-size: 0.72rem;
+  }
+  .optInput {
+    padding: 8px 10px;
+    font-size: 0.85rem;
+  }
+  .removeOpt {
+    width: 24px;
+    height: 24px;
+    font-size: 0.85rem;
+  }
+  .formActions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .submitBtn, .cancelBtn {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* Import */
+  .importWrap {
+    max-width: 100%;
+  }
+  .importWrap h1 {
+    font-size: 1.1rem;
+  }
+  .importSection {
+    padding: 1rem;
+  }
+  .importSection h2 {
+    font-size: 0.9rem;
+  }
+  .importDesc {
+    font-size: 0.8rem;
+  }
+  .jsonArea {
+    font-size: 0.75rem;
+  }
+
+  /* Word import */
+  .dropZone {
+    padding: 1.5rem 1rem;
+  }
+  .dropIcon {
+    font-size: 2rem;
+  }
+  .dropTitle {
+    font-size: 0.85rem;
+  }
+  .dropSub {
+    font-size: 0.75rem;
+  }
+  .formatBox {
+    font-size: 0.72rem;
+    padding: 0.75rem;
+  }
+  .wordPreviewItem {
+    font-size: 0.78rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  /* Login */
+  .loginCard {
+    padding: 2rem 1.5rem;
+    border-radius: 16px;
+  }
+  .loginTitle {
+    font-size: 1.3rem;
+  }
+}
+
+/* Small phones */
+@media (max-width: 480px) {
+  .sidebar {
+    padding: 0.5rem;
+    gap: 4px;
+  }
+  .sidebarLogo {
+    font-size: 0.8rem;
+    gap: 5px;
+    padding: 0.2rem 0.3rem;
+  }
+  .sidebarLogo span:first-child {
+    font-size: 0.9rem;
+  }
+  .navBtn {
+    padding: 5px 8px;
+    font-size: 0.7rem;
+  }
+  .logoutBtn {
+    padding: 4px 8px;
+    font-size: 0.68rem;
+  }
+
+  .main {
+    padding: 0.75rem 0.5rem;
+  }
+  .pageHeader h1 {
+    font-size: 1rem;
+  }
+  .countPill {
+    font-size: 0.7rem;
+    padding: 1px 8px;
+  }
+  .smBtn {
+    padding: 5px 8px;
+    font-size: 0.72rem;
+  }
+
+  /* Question cards */
+  .qCard {
+    padding: 0.75rem;
+    border-radius: 10px;
+  }
+  .qIdx {
+    width: 20px;
+    height: 20px;
+    font-size: 0.68rem;
+  }
+  .qCat {
+    font-size: 0.65rem;
+    padding: 1px 6px;
+  }
+  .qText {
+    font-size: 0.8rem;
+    margin-bottom: 6px;
+  }
+  .qOpt {
+    font-size: 0.68rem;
+    padding: 2px 6px;
+  }
+
+  /* Form */
+  .formWrap {
+    padding: 1rem 0.75rem;
+    border-radius: 12px;
+  }
+  .formTitle {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Import */
+  .importSection {
+    padding: 0.75rem;
+    border-radius: 10px;
+  }
+  .wordPreviewList {
+    max-height: 200px;
+  }
+
+  /* Login */
+  .loginCard {
+    padding: 1.5rem 1.25rem;
+    border-radius: 14px;
+  }
+  .loginIcon {
+    width: 48px;
+    height: 48px;
+    font-size: 1.2rem;
+    border-radius: 12px;
+  }
+  .loginTitle {
+    font-size: 1.2rem;
+  }
+  .loginSubtitle {
+    font-size: 0.8rem;
+    margin-bottom: 1.5rem;
+  }
+  .loginField input {
+    padding: 10px 12px;
+    font-size: 0.88rem;
+  }
+  .loginBtn {
+    padding: 12px;
+    font-size: 0.9rem;
+  }
+}
+

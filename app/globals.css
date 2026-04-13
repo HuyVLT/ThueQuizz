@@ -1,3 +1,95 @@
+/* ============================================================ */
+/* GLOBAL RESET & VARIABLES                                      */
+/* ============================================================ */
+:root {
+  --bg-page: #f5f3ee;
+  --bg-card: #ffffff;
+  --bg-card-alt: #f7f5f0;
+  --bg-hover: #f0f0ea;
+  --bg-input: #ffffff;
+  --bg-code: #f0ede8;
+  --bg-sidebar: #1a1a1a;
+
+  --text-primary: #1a1a1a;
+  --text-secondary: #666;
+  --text-tertiary: #888;
+  --text-muted: #aaa;
+  --text-inverse: #ffffff;
+
+  --color-primary: #1a7a3c;
+  --color-primary-light: #2d9e52;
+  --color-primary-dark: #155e2f;
+  --color-primary-bg: #e8f5e2;
+  --color-primary-text: #2d7a1f;
+
+  --color-danger: #c03030;
+  --color-danger-bg: #fde8e8;
+  --color-danger-border: #f5c6c6;
+
+  --color-warning: #c08000;
+  --color-warning-bg: #fffbe6;
+  --color-warning-border: #f0e6c0;
+
+  --color-info-bg: #f0f4ff;
+  --color-info-border: #aac0ee;
+
+  --border-color: #e0ddd8;
+  --border-light: rgba(0, 0, 0, 0.07);
+  --shadow-sm: 0 1px 4px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 24px rgba(0,0,0,0.07);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.08);
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+}
+
+/* ============================================================ */
+/* DARK MODE                                                     */
+/* ============================================================ */
+[data-theme="dark"] {
+  --bg-page: #0f1117;
+  --bg-card: #1a1d27;
+  --bg-card-alt: #22252f;
+  --bg-hover: #2a2d38;
+  --bg-input: #1e2130;
+  --bg-code: #252838;
+  --bg-sidebar: #0d0f14;
+
+  --text-primary: #e8e8ec;
+  --text-secondary: #9a9caa;
+  --text-tertiary: #7a7c8a;
+  --text-muted: #55576a;
+  --text-inverse: #1a1a1a;
+
+  --color-primary: #3da65e;
+  --color-primary-light: #4cbd6e;
+  --color-primary-dark: #2d8a4a;
+  --color-primary-bg: rgba(61,166,94,0.15);
+  --color-primary-text: #5fcc80;
+
+  --color-danger: #e05050;
+  --color-danger-bg: rgba(224,80,80,0.12);
+  --color-danger-border: rgba(224,80,80,0.25);
+
+  --color-warning: #daa520;
+  --color-warning-bg: rgba(218,165,32,0.1);
+  --color-warning-border: rgba(218,165,32,0.2);
+
+  --color-info-bg: rgba(100,140,230,0.1);
+  --color-info-border: rgba(100,140,230,0.25);
+
+  --border-color: #2d3040;
+  --border-light: rgba(255, 255, 255, 0.06);
+  --shadow-sm: 0 1px 4px rgba(0,0,0,0.2);
+  --shadow-md: 0 4px 24px rgba(0,0,0,0.25);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.3);
+}
+
+/* ============================================================ */
+/* BASE STYLES                                                   */
+/* ============================================================ */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -5,5 +97,32 @@
 }
 body {
   font-family: 'Be Vietnam Pro', 'Segoe UI', sans-serif;
-  background: #f5f3ee;
+  background: var(--bg-page);
+  color: var(--text-primary);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+img, video, svg {
+  max-width: 100%;
+  height: auto;
+}
+input, textarea, select, button {
+  font-family: inherit;
+}
+
+/* Scrollbar styling for dark mode */
+[data-theme="dark"] ::-webkit-scrollbar {
+  width: 8px;
+}
+[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: var(--bg-card);
+}
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: #3d4055;
 }

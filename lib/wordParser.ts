@@ -242,7 +242,7 @@ export function parseWordText(text: string): ParseResult {
     if (options.length < 1) {
       if (questionText.length > 10) {
         warnings.push(
-          `Bo qua cau "${questionText.substring(0, 50)}..." vi khong tim thay lua chon nao`
+          `Bỏ qua câu "${questionText.substring(0, 50)}..." vì không tìm thấy lựa chọn nào`
         );
       }
       // Skip to next question (skip explanation text)
@@ -395,7 +395,7 @@ export function parseWordText(text: string): ParseResult {
       }
       if (!found) {
         warnings.push(
-          `Cau "${questionText.substring(0, 50)}..." khong co dap an`
+          `Câu "${questionText.substring(0, 50)}..." không có đáp án`
         );
       }
     }
@@ -446,19 +446,19 @@ export function parseWordText(text: string): ParseResult {
       success: false,
       questions: [],
       error: [
-        "Khong tim thay cau hoi nao. Dinh dang chuan duoc ho tro:",
+        "Không tìm thấy câu hỏi nào. Định dạng chuẩn được hỗ trợ:",
         "",
-        "Cau 1. Noi dung cau hoi?",
-        "A. Lua chon A",
-        "B. Lua chon B",
-        "C. Lua chon C",
-        "D. Lua chon D",
-        "Dap an: A",
+        "Câu 1. Nội dung câu hỏi?",
+        "A. Lựa chọn A",
+        "B. Lựa chọn B",
+        "C. Lựa chọn C",
+        "D. Lựa chọn D",
+        "Đáp án: A",
         "",
-        "Luu y:",
-        "- Options phai la CHU HOA (A. B. C. D.)",
-        "- Sub-items viet thuong (a. b. c.) se bi bo qua (tranh nham voi van ban luat)",
-        "- 'Dap an:' phai viet dau hai cham",
+        "Lưu ý:",
+        "- Lựa chọn phải là CHỮ HOA (A. B. C. D.)",
+        "- Các mục viết thường (a. b. c.) sẽ bị bỏ qua (tránh nhầm với văn bản luật)",
+        "- 'Đáp án:' phải viết dấu hai chấm",
       ].join("\n"),
       warnings,
     };

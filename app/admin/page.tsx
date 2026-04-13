@@ -25,7 +25,120 @@ const EMPTY_FORM = {
   category: "",
 };
 
+// Mock authentication
+const ADMIN_EMAIL = "lemyhoa1978@gmail.com";
+const ADMIN_PASSWORD = "kingcute123";
+const AUTH_KEY = "quiz_admin_auth";
+
+function getAuthState(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const stored = sessionStorage.getItem(AUTH_KEY);
+    return stored === "authenticated";
+  } catch {
+    return false;
+  }
+}
+
+function setAuthState(authenticated: boolean) {
+  if (typeof window === "undefined") return;
+  try {
+    if (authenticated) {
+      sessionStorage.setItem(AUTH_KEY, "authenticated");
+    } else {
+      sessionStorage.removeItem(AUTH_KEY);
+    }
+  } catch {
+    // ignore
+  }
+}
+
+function LoginForm({ onLogin }: { onLogin: () => void }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!email.trim() || !password.trim()) {
+      setError("Vui lòng nhập đầy đủ email và mật khẩu");
+      return;
+    }
+
+    if (email.trim().toLowerCase() === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+      setAuthState(true);
+      onLogin();
+    } else {
+      setError("Email hoặc mật khẩu không đúng");
+    }
+  };
+
+  return (
+    <div className={styles.loginContainer}>
+      <div className={styles.loginCard}>
+        <div className={styles.loginIcon}>
+          <span>Q</span>
+        </div>
+        <h1 className={styles.loginTitle}>Đăng nhập quản lý</h1>
+        <p className={styles.loginSubtitle}>
+          Nhập thông tin tài khoản để truy cập trang quản lý câu hỏi
+        </p>
+
+        <form onSubmit={handleSubmit} className={styles.loginForm}>
+          {error && (
+            <div className={styles.loginError}>
+              {error}
+            </div>
+          )}
+
+          <div className={styles.loginField}>
+            <label>Email</label>
+            <input
+              type="email"
+              placeholder="Nhập email..."
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              autoFocus
+            />
+          </div>
+
+          <div className={styles.loginField}>
+            <label>Mật khẩu</label>
+            <div className={styles.passwordWrap}>
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Nhập mật khẩu..."
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+              />
+              <button
+                type="button"
+                className={styles.passwordToggle}
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? "Ẩn" : "Hiện"}
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" className={styles.loginBtn}>
+            Đăng nhập
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPage() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+
   const [tab, setTab] = useState<Tab>("list");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -45,17 +158,48 @@ export default function AdminPage() {
   const [wordLoading, setWordLoading] = useState(false);
   const [wordDragOver, setWordDragOver] = useState(false);
 
+  // Check auth on mount
+  useEffect(() => {
+    setIsAuthenticated(getAuthState());
+    setAuthChecked(true);
+  }, []);
+
   const reload = useCallback(async () => {
     const qs = await getQuestions();
     setQuestions(qs);
   }, []);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => {
+    if (isAuthenticated) {
+      reload();
+    }
+  }, [reload, isAuthenticated]);
 
   const flash = (type: "ok" | "err", text: string) => {
     setMsg({ type, text });
     setTimeout(() => setMsg(null), 3000);
   };
+
+  const handleLogout = () => {
+    setAuthState(false);
+    setIsAuthenticated(false);
+  };
+
+  // Show nothing while checking auth
+  if (!authChecked) {
+    return (
+      <div className={styles.loginContainer}>
+        <div className={styles.loginCard}>
+          <p style={{ textAlign: "center", color: "#888" }}>Đang kiểm tra...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login if not authenticated
+  if (!isAuthenticated) {
+    return <LoginForm onLogin={() => setIsAuthenticated(true)} />;
+  }
 
   const handleFormOpt = (i: number, val: string) => {
     setForm((f) => {
@@ -135,7 +279,7 @@ export default function AdminPage() {
     reader.readAsText(file);
   };
 
-  const processWordFile = useCallback(async (file: File) => {
+  const processWordFile = async (file: File) => {
     if (!file.name.match(/\.docx?$/i)) {
       setWordError("Chỉ hỗ trợ file .docx");
       return;
@@ -168,7 +312,7 @@ export default function AdminPage() {
     } finally {
       setWordLoading(false);
     }
-  }, []);
+  };
 
   const handleWordFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -217,7 +361,7 @@ export default function AdminPage() {
     <div className={styles.container}>
       <div className={styles.sidebar}>
         <div className={styles.sidebarLogo}>
-          <span>📋</span>
+          <span>Q</span>
           <span>Quản lý Quiz</span>
         </div>
         {(["list", "add", "import", "word"] as Tab[]).map((t) => (
@@ -233,6 +377,14 @@ export default function AdminPage() {
           </button>
         ))}
 
+        <div className={styles.sidebarFooter}>
+          <div className={styles.userInfo}>
+            <span className={styles.userEmail}>{ADMIN_EMAIL}</span>
+          </div>
+          <button className={styles.logoutBtn} onClick={handleLogout}>
+            Đăng xuất
+          </button>
+        </div>
       </div>
 
       <div className={styles.main}>
@@ -335,7 +487,7 @@ export default function AdminPage() {
                     onChange={(e) => handleFormOpt(i, e.target.value)}
                     className={styles.optInput}
                   />
-                  <button className={styles.removeOpt} onClick={() => handleRemoveOpt(i)}>×</button>
+                  <button className={styles.removeOpt} onClick={() => handleRemoveOpt(i)}>x</button>
                 </div>
               ))}
               {form.options.length < 6 && (
