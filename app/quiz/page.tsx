@@ -42,11 +42,10 @@ function shuffle<T>(arr: T[]): T[] {
 
 function shuffleQuestion(q: Question): ShuffledQuestion {
   const indices = q.options.map((_, i) => i);
-  const shuffledIndices = shuffle(indices);
   return {
     ...q,
-    shuffledOptions: shuffledIndices.map(i => q.options[i]),
-    shuffleMap: shuffledIndices,
+    shuffledOptions: q.options,
+    shuffleMap: indices,
   };
 }
 
@@ -80,7 +79,6 @@ function QuizContent() {
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState<(UserAnswer | null)[]>([]);
   const [selected, setSelected] = useState<number | null>(null);
-  const [confirmed, setConfirmed] = useState(false);
   const [count, setCount] = useState(10);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -136,7 +134,6 @@ function QuizContent() {
     setAnswers(new Array(shuffledPool.length).fill(null));
     setCurrent(0);
     setSelected(null);
-    setConfirmed(false);
     setPhase("quiz");
     setNavOpen(false);
     setQuizStartTime(Date.now());
@@ -217,41 +214,28 @@ function QuizContent() {
       } else {
         setCurrent(prev => prev + 1);
         setSelected(null);
-        setConfirmed(false);
         setTimeLeft(perQuestionTime);
       }
     }
   }, [timeLeft, phase, timerMode, current, finishQuiz, perQuestionTime, shuffled.length]);
 
-  const saveCurrentAnswer = useCallback(() => {
-    if (selected !== null) {
-      const q = shuffled[current];
-      const originalSelectedIndex = q.shuffleMap[selected];
-      const isCorrect = q.correctIndex >= 0 && originalSelectedIndex === q.correctIndex;
-      setAnswers((prev) => {
-        const next = [...prev];
-        next[current] = {
-          questionId: q.id,
-          selectedIndex: originalSelectedIndex,
-          correct: isCorrect,
-          originalCorrectIndex: q.correctIndex,
-          questionText: q.question,
-          category: q.category,
-        };
-        return next;
-      });
-    }
-  }, [selected, shuffled, current]);
-
   const handleSelect = (idx: number) => {
-    if (confirmed) return;
     setSelected(idx);
-  };
-
-  const handleConfirm = () => {
-    if (selected === null || confirmed) return;
-    setConfirmed(true);
-    saveCurrentAnswer();
+    const q = shuffled[current];
+    const originalSelectedIndex = q.shuffleMap[idx];
+    const isCorrect = q.correctIndex >= 0 && originalSelectedIndex === q.correctIndex;
+    setAnswers((prev) => {
+      const next = [...prev];
+      next[current] = {
+        questionId: q.id,
+        selectedIndex: originalSelectedIndex,
+        correct: isCorrect,
+        originalCorrectIndex: q.correctIndex,
+        questionText: q.question,
+        category: q.category,
+      };
+      return next;
+    });
   };
 
   const handleNext = () => {
@@ -261,8 +245,13 @@ function QuizContent() {
       const nextIdx = current + 1;
       setCurrent(nextIdx);
       const existingAns = answers[nextIdx];
-      setSelected(existingAns ? existingAns.selectedIndex : null);
-      setConfirmed(!!existingAns);
+      if (existingAns) {
+        const q = shuffled[nextIdx];
+        const displayIdx = q.shuffleMap.indexOf(existingAns.selectedIndex);
+        setSelected(displayIdx >= 0 ? displayIdx : null);
+      } else {
+        setSelected(null);
+      }
       if (timerMode === "per-question") {
         setTimeLeft(perQuestionTime);
       }
@@ -282,7 +271,6 @@ function QuizContent() {
     } else {
       setSelected(null);
     }
-    setConfirmed(!!existingAns);
   };
 
   const jumpToQuestion = (idx: number) => {
@@ -296,7 +284,6 @@ function QuizContent() {
     } else {
       setSelected(null);
     }
-    setConfirmed(!!existingAns);
     setNavOpen(false);
     if (timerMode === "per-question") {
       setTimeLeft(perQuestionTime);
@@ -746,17 +733,8 @@ function QuizContent() {
 
           <div className={styles.options}>
             {q.shuffledOptions.map((opt, i) => {
-              const originalIdx = q.shuffleMap[i];
               let cls = styles.optionBtn;
-              if (confirmed) {
-                if (originalIdx === q.correctIndex && q.correctIndex >= 0) {
-                  cls = `${styles.optionBtn} ${styles.optionCorrect}`;
-                } else if (selected === i && originalIdx !== q.correctIndex) {
-                  cls = `${styles.optionBtn} ${styles.optionWrong}`;
-                } else {
-                  cls = `${styles.optionBtn} ${styles.optionDim}`;
-                }
-              } else if (selected === i) {
+              if (selected === i) {
                 cls = `${styles.optionBtn} ${styles.optionSelected}`;
               }
               return (
@@ -768,14 +746,6 @@ function QuizContent() {
             })}
           </div>
 
-          {/* Show explanation after confirming */}
-          {confirmed && q.explanation && (
-            <div className={styles.explanation}>
-              <span className={styles.explainIcon}>💡</span>
-              <span>{q.explanation}</span>
-            </div>
-          )}
-
           <div className={styles.quizActions}>
             <button
               className={styles.prevBtn}
@@ -785,23 +755,12 @@ function QuizContent() {
               Câu trước
             </button>
 
-            {!confirmed ? (
-              <button
-                className={styles.confirmBtn}
-                onClick={handleConfirm}
-                disabled={selected === null}
-                style={{ opacity: selected === null ? 0.5 : 1 }}
-              >
-                Xác nhận
-              </button>
-            ) : (
-              <button
-                className={styles.nextBtn}
-                onClick={handleNext}
-              >
-                {current + 1 >= shuffled.length ? "Nộp bài" : "Câu tiếp theo"}
-              </button>
-            )}
+            <button
+              className={styles.nextBtn}
+              onClick={handleNext}
+            >
+              {current + 1 >= shuffled.length ? "Nộp bài" : "Câu tiếp theo"}
+            </button>
           </div>
         </div>
       </div>
