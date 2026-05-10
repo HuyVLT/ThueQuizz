@@ -93,6 +93,7 @@ function QuizContent() {
   const [srsMode, setSrsMode] = useState(false);
   const [dueCardCount, setDueCardCount] = useState(0);
   const [finalTimeTaken, setFinalTimeTaken] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     getQuestions().then((qs) => {
@@ -154,52 +155,57 @@ function QuizContent() {
   }, [phase, timeLeft]);
 
   const finishQuiz = useCallback(async () => {
-    if (!user) return;
-    const timeTaken = Math.round((Date.now() - quizStartTime) / 1000);
-    setFinalTimeTaken(timeTaken);
-    const currentAnswers = answers;
-    const countable = shuffled.filter(q => q.correctIndex >= 0).length;
-    const score = currentAnswers.filter(a => a && a.correct).length;
-    const percent = countable > 0 ? Math.round((score / countable) * 100) : 0;
+    if (!user || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const timeTaken = Math.round((Date.now() - quizStartTime) / 1000);
+      setFinalTimeTaken(timeTaken);
+      const currentAnswers = answers;
+      const countable = shuffled.filter(q => q.correctIndex >= 0).length;
+      const score = currentAnswers.filter(a => a && a.correct).length;
+      const percent = countable > 0 ? Math.round((score / countable) * 100) : 0;
 
-    const questionResults: QuestionResult[] = shuffled.map((q, i) => {
-      const ans = currentAnswers[i];
-      return {
-        questionId: q.id,
-        questionText: q.question,
-        selectedIndex: ans ? ans.selectedIndex : -1,
-        correctIndex: q.correctIndex,
-        correct: ans ? ans.correct : false,
-        category: q.category,
-      };
-    });
+      const questionResults: QuestionResult[] = shuffled.map((q, i) => {
+        const ans = currentAnswers[i];
+        return {
+          questionId: q.id,
+          questionText: q.question,
+          selectedIndex: ans ? ans.selectedIndex : -1,
+          correctIndex: q.correctIndex,
+          correct: ans ? ans.correct : false,
+          category: q.category,
+        };
+      });
 
-    const oldBadges = streak?.badges || [];
+      const oldBadges = streak?.badges || [];
 
-    const saveResponse = await saveResult({
-      userId: user.id,
-      userName: user.name,
-      date: new Date().toISOString(),
-      score,
-      total: countable,
-      percent,
-      category: selectedCategory,
-      timeTaken,
-      questionResults,
-    });
+      const saveResponse = await saveResult({
+        userId: user.id,
+        userName: user.name,
+        date: new Date().toISOString(),
+        score,
+        total: countable,
+        percent,
+        category: selectedCategory,
+        timeTaken,
+        questionResults,
+      });
 
-    // Check for new badges from server response
-    if (saveResponse?.streak) {
-      const updatedStreak = saveResponse.streak;
-      const freshBadges = updatedStreak.badges.filter(b => !oldBadges.includes(b));
-      if (freshBadges.length > 0) {
-        setNewBadges(freshBadges);
-        setShowBadgePopup(true);
+      // Check for new badges from server response
+      if (saveResponse?.streak) {
+        const updatedStreak = saveResponse.streak;
+        const freshBadges = updatedStreak.badges.filter(b => !oldBadges.includes(b));
+        if (freshBadges.length > 0) {
+          setNewBadges(freshBadges);
+          setShowBadgePopup(true);
+        }
+        setStreak(updatedStreak);
       }
-      setStreak(updatedStreak);
+      setPhase("review");
+    } finally {
+      setIsSubmitting(false);
     }
-    setPhase("review");
-  }, [user, answers, shuffled, quizStartTime, selectedCategory, streak]);
+  }, [user, answers, shuffled, quizStartTime, selectedCategory, streak, isSubmitting]);
 
   // Time up handling
   useEffect(() => {
@@ -724,8 +730,9 @@ function QuizContent() {
                   finishQuiz();
                 }
               }}
+              disabled={isSubmitting}
             >
-              Nộp bài
+              {isSubmitting ? "Đang xử lý..." : "Nộp bài"}
             </button>
           </div>
 
@@ -757,8 +764,9 @@ function QuizContent() {
 
             <button
               className={styles.nextBtn}
-              onClick={handleNext}
+              disabled={isSubmitting}
             >
+              {isSubmitting ? "Đang xử lý..." : 
               {current + 1 >= shuffled.length ? "Nộp bài" : "Câu tiếp theo"}
             </button>
           </div>

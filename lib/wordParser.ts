@@ -23,7 +23,7 @@ function normalizeVi(str: string): string {
   return str
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "") // Remove combining diacritics (removes â,ê,ô,ă,ư,ơ accents)
-    .replace(/[đĐ]/g, "d")           // Vietnamese đ/Đ (D-with-stroke) → d
+    .replace(/[đĐÐð]/g, "d")         // Normalize Vietnamese đ/Đ and Eth Ð/ð to d
     .toLowerCase()
     .trim();
 }
@@ -39,8 +39,8 @@ function getOptionLetter(line: string): string | null {
   // Uppercase: distinctive enough, space optional (including optional *)
   let match = line.match(/^\s*\(?([A-H])[.)]\s*\*?\s*/);
   if (match) return match[1];
-  // Vietnamese "Đ" (U+0110) as option letter (e.g. "Đ. text" or "đ. text")
-  match = line.match(/^\s*\(?([đĐ])[.)]\s*\*?\s*/);
+  // Vietnamese "Đ" (U+0110) or Eth "Ð" (U+00D0) as option letter
+  match = line.match(/^\s*\(?([đĐÐð])[.)]\s*\*?\s*/);
   if (match) return "D5"; // Special marker: 5th option (đ)
   // Lowercase: require space after period/paren to avoid false positives
   match = line.match(/^\s*\(?([a-h])[.)]\s*\*?\s+/);
@@ -48,7 +48,7 @@ function getOptionLetter(line: string): string | null {
 }
 
 function stripOptionPrefix(line: string): string {
-  return line.replace(/^\s*\(?[A-Ha-hđĐ][.)]\s*\*?\s*/, "").trim();
+  return line.replace(/^\s*\(?[A-Ha-hđĐÐð][.)]\s*\*?\s*/, "").trim();
 }
 
 /**
@@ -63,7 +63,7 @@ function getAnswerLetter(line: string): string | null {
   // Match "Đáp án: B", "Đáp án đúng: A", "(Đáp án a)", "Đáp án B,", "DA: C",
   // "Đáp án: B (Căn cứ...)", "Đáp án: B - Sai", "Đáp án: C  (Căn cứ: ...)"
   // After the answer letter, allow: ) . : space , ( - or end of string
-  const match = norm.match(/^(?:\(?\s*)?(?:dap\s*an(?:\s+dung)?|answer|da|correct)\s*[:.,]?\s*([a-h])(?:\s*[.):\s,(-]|$)/);
+  const match = norm.match(/^(?:\(?\s*)?(?:dap\s*an(?:\s+dung)?|answer|da|correct)\s*[:.,]?\s*([a-h])\*?(?:\s*[.):\s,(-]|$)/);
   return match ? match[1].toUpperCase() : null;
 }
 
@@ -216,7 +216,7 @@ export function parseWordText(text: string): ParseResult {
 
     while (i < lines.length && getOptionLetter(lines[i]) !== null) {
       const letter = getOptionLetter(lines[i])!;
-      const isCorrectAsterisk = /^\s*\(?[A-Ha-hđĐ][.)]\s*\*/.test(lines[i]);
+      const isCorrectAsterisk = /^\s*\(?[A-Ha-hđĐÐð][.)]\s*\*/.test(lines[i]);
       if (isCorrectAsterisk) {
          correctIndex = options.length;
          hasAnswer = true;
@@ -309,7 +309,7 @@ export function parseWordText(text: string): ParseResult {
         
         if (textMatch) {
            // We found "Đáp án: Something"
-           let answerTextNorm = textMatch[1].trim();
+            let answerTextNorm = textMatch[1].trim().replace(/\*+$/g, "");
            
            for (let optIdx = 0; optIdx < options.length; optIdx++) {
               const optNorm = normalizeVi(options[optIdx]);
@@ -371,7 +371,7 @@ export function parseWordText(text: string): ParseResult {
           const textMatch = normPrefix.match(prefixTextRegex);
           
           if (textMatch) {
-             let answerTextNorm = textMatch[1].trim();
+             let answerTextNorm = textMatch[1].trim().replace(/\*+$/g, "");
              for (let optIdx = 0; optIdx < options.length; optIdx++) {
                 const optNorm = normalizeVi(options[optIdx]);
                 if (optNorm === answerTextNorm || optNorm.includes(answerTextNorm) || answerTextNorm.includes(optNorm)) {
