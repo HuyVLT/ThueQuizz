@@ -9,6 +9,7 @@ import {
   type QuestionResult,
   getUserStreak,
   getDueCards,
+  getResultsByUser,
   BADGES,
   type UserStreak,
 } from "@/lib/resultStore";
@@ -90,6 +91,9 @@ function QuizContent() {
   const [streak, setStreak] = useState<UserStreak | null>(null);
   const [newBadges, setNewBadges] = useState<string[]>([]);
   const [showBadgePopup, setShowBadgePopup] = useState(false);
+  const [showCongrats, setShowCongrats] = useState(false);
+  const [prevPercent, setPrevPercent] = useState<number | null>(null);
+  const [improvement, setImprovement] = useState<number | null>(null);
   const [srsMode, setSrsMode] = useState(false);
   const [dueCardCount, setDueCardCount] = useState(0);
   const [finalTimeTaken, setFinalTimeTaken] = useState(0);
@@ -139,6 +143,11 @@ function QuizContent() {
     setNavOpen(false);
     setQuizStartTime(Date.now());
 
+    // clear previous run UI
+    setShowCongrats(false);
+    setPrevPercent(null);
+    setImprovement(null);
+
     if (timerMode === "total") {
       setTimeLeft(shuffledPool.length * 60);
     } else {
@@ -179,6 +188,22 @@ function QuizContent() {
 
       const oldBadges = streak?.badges || [];
 
+      // Fetch last result to compare improvement
+      let lastResult = null;
+      try {
+        const prev = user ? await getResultsByUser(user.id) : [];
+        if (prev && prev.length > 0) lastResult = prev[0];
+      } catch {
+        lastResult = null;
+      }
+
+      if (lastResult) {
+        setPrevPercent(lastResult.percent);
+        const diff = Math.max(0, percent - lastResult.percent);
+        setImprovement(diff);
+        if (diff > 0) setShowCongrats(true);
+      }
+
       const saveResponse = await saveResult({
         userId: user.id,
         userName: user.name,
@@ -206,6 +231,13 @@ function QuizContent() {
       setIsSubmitting(false);
     }
   }, [user, answers, shuffled, quizStartTime, selectedCategory, streak, isSubmitting]);
+
+  // Auto-dismiss congrats popup
+  useEffect(() => {
+    if (!showCongrats) return;
+    const t = setTimeout(() => setShowCongrats(false), 4000);
+    return () => clearTimeout(t);
+  }, [showCongrats]);
 
   // Time up handling
   useEffect(() => {
@@ -306,8 +338,22 @@ function QuizContent() {
       <div className={styles.container}>
         <div className={styles.introCard}>
           <div className={styles.badge}>TRẮC NGHIỆM THUẾ</div>
-          <h1 className={styles.title}>⏳ Đang tải câu hỏi...</h1>
+          <div className={styles.loadingIcon}>📚</div>
+          <h1 className={styles.title}>Đang tải câu hỏi...</h1>
           <p className={styles.subtitle}>Vui lòng chờ trong giây lát</p>
+          
+          <div className={styles.progressContainer}>
+            <div className={styles.progressBar}>
+              <div className={styles.progressFill}></div>
+            </div>
+            <p className={styles.progressLabel}>Đang khởi tạo phiên thi...</p>
+          </div>
+
+          <div className={styles.loadingDots}>
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
         </div>
       </div>
     );
@@ -521,11 +567,43 @@ function QuizContent() {
           </div>
         )}
 
+        {/* Congratulation popup when score improved */}
+        {showCongrats && (
+          <div className={styles.congratsOverlay} onClick={() => setShowCongrats(false)}>
+            <div className={styles.congratsPopup} onClick={e => e.stopPropagation()}>
+              <div className={styles.confettiContainer} aria-hidden>
+                {Array.from({ length: 12 }).map((_, i) => {
+                  const colors = ["#ff4d4f", "#ffb400", "#52c41a", "#1890ff", "#a755f7"];
+                  return (
+                    <span
+                      key={i}
+                      className={styles.confettiPiece}
+                      style={{ left: `${6 + i * 7}%`, background: colors[i % colors.length], animationDelay: `${i * 80}ms` }}
+                    />
+                  );
+                })}
+              </div>
+              <h3 className={styles.congratsTitle}>🎉 Chúc mừng!</h3>
+              <div className={styles.congratsBody}>
+                {prevPercent !== null ? (
+                  <p>Bạn đã cải thiện điểm từ <strong>{prevPercent}%</strong> lên <strong>{percent}%</strong> 🎊</p>
+                ) : (
+                  <p>Bạn đạt điểm cao hơn lần trước! 🎊</p>
+                )}
+              </div>
+              <button className={styles.badgePopupClose} onClick={() => setShowCongrats(false)}>Tiếp tục</button>
+            </div>
+          </div>
+        )}
+
         <div className={styles.reviewCard}>
           <div className={`${styles.scoreCircle} ${percent >= 80 ? styles.scoreGood : percent >= 50 ? styles.scoreMid : styles.scoreBad}`}>
             <span className={styles.scoreNum}>{percent}%</span>
             <span className={styles.scoreLabel}>Đúng</span>
           </div>
+          {improvement && improvement > 0 && (
+            <div className={styles.improveBadge}>↑ +{improvement}%</div>
+          )}
           <h2 className={styles.reviewTitle}>
             {percent >= 80 ? "🎉 Xuất sắc!" : percent >= 50 ? "👍 Khá tốt!" : "💪 Cần ôn thêm"}
           </h2>
@@ -724,15 +802,22 @@ function QuizContent() {
               </span>
             )}
             <button
-              className={styles.endBtn}
+              className={`${styles.endBtn} ${isSubmitting ? styles.btnDisabled : ""}`}
               onClick={() => {
-                if (confirm(`Kết thúc bài làm? Bạn đã làm ${answeredCount}/${shuffled.length} câu.`)) {
+                if (!isSubmitting && confirm(`Kết thúc bài làm? Bạn đã làm ${answeredCount}/${shuffled.length} câu.`)) {
+                  setIsSubmitting(true);
                   finishQuiz();
                 }
               }}
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Đang xử lý..." : "Nộp bài"}
+              {isSubmitting ? (
+                <>
+                  <span className={styles.spinner}></span> Đang xử lý...
+                </>
+              ) : (
+                "Nộp bài"
+              )}
             </button>
           </div>
 
@@ -757,17 +842,32 @@ function QuizContent() {
             <button
               className={styles.prevBtn}
               onClick={handlePrev}
-              disabled={current <= 0}
+              disabled={current <= 0 || isSubmitting}
             >
               Câu trước
             </button>
 
             <button
-              className={styles.nextBtn}
+              className={`${styles.nextBtn} ${isSubmitting ? styles.btnDisabled : ""}`}
+              onClick={() => {
+                if (!isSubmitting) {
+                  if (current + 1 >= shuffled.length) {
+                    setIsSubmitting(true);
+                    finishQuiz();
+                  } else {
+                    handleNext();
+                  }
+                }
+              }}
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Đang xử lý..." : 
-              {current + 1 >= shuffled.length ? "Nộp bài" : "Câu tiếp theo"}
+              {isSubmitting ? (
+                <>
+                  <span className={styles.spinner}></span> Đang xử lý...
+                </>
+              ) : (
+                current + 1 >= shuffled.length ? "Nộp bài" : "Câu tiếp theo"
+              )}
             </button>
           </div>
         </div>
